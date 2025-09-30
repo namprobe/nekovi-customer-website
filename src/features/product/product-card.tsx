@@ -1,0 +1,89 @@
+"use client"
+
+import Link from "next/link"
+import Image from "next/image"
+import { ShoppingCart, Heart } from "lucide-react"
+import { Button } from "@/src/components/ui/button"
+import { Card, CardContent } from "@/src/components/ui/card"
+import { Badge } from "@/src/components/ui/badge"
+import type { Product } from "@/src/shared/types"
+import { formatCurrency } from "@/src/shared/utils/format"
+
+interface ProductCardProps {
+  product: Product
+  onAddToCart?: (product: Product) => void
+  onAddToWishlist?: (product: Product) => void
+}
+
+export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCardProps) {
+  const primaryImage = product.images.find((img) => img.isPrimary) || product.images[0]
+  const discountPercent =
+    product.discount ||
+    (product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0)
+
+  return (
+    <Card className="group relative overflow-hidden transition-all hover:shadow-lg">
+      <Link href={`/products/${product.id}`}>
+        <div className="relative aspect-square overflow-hidden bg-muted">
+          <Image
+            src={primaryImage?.url || "/placeholder.svg?height=400&width=400"}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform group-hover:scale-105"
+          />
+          {discountPercent > 0 && (
+            <Badge className="absolute right-2 top-2 bg-destructive text-destructive-foreground">
+              -{discountPercent}%
+            </Badge>
+          )}
+          {product.isPreOrder && (
+            <Badge className="absolute left-2 top-2 bg-accent text-accent-foreground">Pre-Order</Badge>
+          )}
+        </div>
+      </Link>
+
+      <CardContent className="p-4">
+        <Link href={`/products/${product.id}`}>
+          <h3 className="mb-2 line-clamp-2 text-sm font-medium text-balance hover:text-primary">{product.name}</h3>
+        </Link>
+
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-lg font-bold text-primary">{formatCurrency(product.price)}</span>
+          {product.originalPrice && (
+            <span className="text-sm text-muted-foreground line-through">{formatCurrency(product.originalPrice)}</span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={(e) => {
+              e.preventDefault()
+              onAddToCart?.(product)
+            }}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            Thêm vào giỏ
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault()
+              onAddToWishlist?.(product)
+            }}
+            aria-label="Add to wishlist"
+          >
+            <Heart className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {product.stock < 10 && product.stock > 0 && (
+          <p className="mt-2 text-xs text-destructive">Chỉ còn {product.stock} sản phẩm</p>
+        )}
+        {product.stock === 0 && <p className="mt-2 text-xs text-muted-foreground">Hết hàng</p>}
+      </CardContent>
+    </Card>
+  )
+}
