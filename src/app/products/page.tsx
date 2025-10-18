@@ -1,5 +1,7 @@
+//src/app/products/page.tsx
 "use client"
 
+import { useCustomerProducts } from "@/src/features/product/hooks/use-customer-products"
 import { useState, useMemo } from "react"
 import Image from "next/image"
 import Link from "next/link"
@@ -19,59 +21,15 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 12
 
-  const filteredProducts = useMemo(() => {
-    let filtered = [...mockProducts]
 
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter((product) => product.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    }
+  const { data, loading, error } = useCustomerProducts({
+    page: currentPage,
+    pageSize: itemsPerPage,
+    search: searchQuery,
+    sortType: sortBy === "newest" ? undefined : sortBy, // server sẽ xử lý
+  })
 
-    // Category filter
-    if (category !== "all") {
-      filtered = filtered.filter((product) => product.categoryId === category)
-    }
-
-    // Price range filter
-    if (priceRange !== "all") {
-      filtered = filtered.filter((product) => {
-        const price = product.price
-        switch (priceRange) {
-          case "under-500k":
-            return price < 500000
-          case "500k-1m":
-            return price >= 500000 && price < 1000000
-          case "1m-2m":
-            return price >= 1000000 && price < 2000000
-          case "over-2m":
-            return price >= 2000000
-          default:
-            return true
-        }
-      })
-    }
-
-    // Sort
-    switch (sortBy) {
-      case "price-asc":
-        filtered.sort((a, b) => a.price - b.price)
-        break
-      case "price-desc":
-        filtered.sort((a, b) => b.price - a.price)
-        break
-      case "name":
-        filtered.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      default:
-        // newest - keep original order
-        break
-    }
-
-    return filtered
-  }, [searchQuery, sortBy, priceRange, category])
-
-  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage)
-  const paginatedProducts = filteredProducts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const totalPages = data?.totalPages ?? 1
 
   return (
     <MainLayout>
@@ -186,9 +144,12 @@ export default function ProductsPage() {
 
         {/* Product Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {paginatedProducts.map((product) => (
+          {loading && <p>Đang tải...</p>}
+          {error && <p className="text-red-500">{error}</p>}
+          {data?.items?.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
+
         </div>
 
         {/* Pagination */}
