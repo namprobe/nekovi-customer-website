@@ -1,39 +1,95 @@
-//src/app/products/page.tsx
-"use client"
+// src/app/products/page.tsx
+'use client';
 
-import { useCustomerProducts } from "@/src/features/product/hooks/use-customer-products"
-import { useState, useMemo } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { MainLayout } from "@/src/widgets/layout/main-layout"
-import { ProductCard } from "@/src/features/product/product-card"
-import { mockProducts } from "@/src/core/lib/mock-data"
-import { Button } from "@/src/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select"
-import { Input } from "@/src/components/ui/input"
-import { ChevronLeft, ChevronRight, Search } from "lucide-react"
+import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';
+import { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { MainLayout } from '@/src/widgets/layout/main-layout';
+import { ProductCard } from '@/src/features/product/product-card';
+import { Button } from '@/src/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
+import { Input } from '@/src/components/ui/input';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { useDebounce } from 'use-debounce';
+import type { Product, Category } from '@/src/shared/types';
+import { api } from '@/src/core/lib/api-client';
+import ProductCardSkeleton from '@/src/features/product/product-card-skeleton';
+import { AsyncSelect } from '@/src/shared/ui/selects/async-select';
+import { useCategorySelectStore } from '@/src/entities/categories/services/category-select-service';
 
 export default function ProductsPage() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState("newest")
-  const [priceRange, setPriceRange] = useState("all")
-  const [category, setCategory] = useState("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 12
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch] = useDebounce(searchQuery, 500);
+  const [sortBy, setSortBy] = useState('newest');
+  const [priceRange, setPriceRange] = useState('all');
+  const [category, setCategory] = useState('all'); // Lưu id hoặc 'all'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
+  // Sử dụng useCategorySelectStore để fetch categories
+  const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
+    useCategorySelectStore();
+
+  // Map category id to categoryId
+  const categoryIdMap: Record<string, string> = {
+    all: '',
+    ...Object.fromEntries(categories.map((cat) => [cat.id, cat.id])), // Ánh xạ id -> id
+  };
 
   const { data, loading, error } = useCustomerProducts({
     page: currentPage,
     pageSize: itemsPerPage,
-    search: searchQuery,
-    sortType: sortBy === "newest" ? undefined : sortBy, // server sẽ xử lý
-  })
+    search: debouncedSearch,
+    sortType: sortBy === 'newest' ? undefined : sortBy,
+    categoryId: category === 'all' ? undefined : category, // Dùng trực tiếp category (id)
+    priceRange: priceRange === 'all' ? undefined : priceRange,
+  });
 
-  const totalPages = data?.totalPages ?? 1
+  // Transform ProductItem to Product
+  const products: Product[] =
+    data?.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      slug: item.slug || '',
+      description: item.description || '',
+      price: item.price,
+      originalPrice: item.originalPrice,
+      discount: item.discount,
+      categoryId: item.categoryId,
+      category: item.category,
+      images: item.primaryImage
+        ? [
+          {
+            id: `${item.id}-primary`,
+            productId: item.id,
+            url: item.primaryImage,
+            alt: item.name,
+            isPrimary: true,
+            order: 0,
+          },
+        ]
+        : [],
+      stock: item.stockQuantity,
+      isPreOrder: item.isPreOrder || false,
+      tags: item.tags,
+      rating: item.rating,
+      reviewCount: item.reviewCount,
+      createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+    })) || [];
+
+  const totalPages = data?.totalPages ?? 1;
+
+  // Preload categories khi trang được load
+  useEffect(() => {
+    if (categories.length === 0) {
+      fetchCategories('');
+    }
+  }, [fetchCategories, categories]);
 
   return (
     <MainLayout>
-      {/* Sakura Cosplay Festival Banner - Top of page */}
+      {/* Sakura Cosplay Festival Banner */}
       <div className="relative overflow-hidden">
         <Image
           src="/cuoc-thi-anh-banner.png"
@@ -53,9 +109,8 @@ export default function ProductsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Header with search */}
         <div className="mb-8">
-          <h1 className="mb-4 text-3xl font-bold">Kết quả tìm kiếm cho từ khóa 'figure'</h1>
+          <h1 className="mb-4 text-3xl font-bold">Kết quả tìm kiếm cho từ khóa '{debouncedSearch || 'figure'}'</h1>
           <div className="relative">
             <Input
               type="text"
@@ -68,11 +123,10 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
           <Button
-            variant={sortBy === "newest" ? "default" : "outline"}
-            onClick={() => setSortBy("newest")}
+            variant={sortBy === 'newest' ? 'default' : 'outline'}
+            onClick={() => setSortBy('newest')}
             className="bg-transparent"
           >
             Sắp xếp theo
@@ -86,7 +140,8 @@ export default function ProductsPage() {
               <SelectItem value="newest">Mới nhất</SelectItem>
               <SelectItem value="price-asc">Giá tăng dần</SelectItem>
               <SelectItem value="price-desc">Giá giảm dần</SelectItem>
-              <SelectItem value="name">Tên A-Z</SelectItem>
+              <SelectItem value="name-asc">Tên A-Z</SelectItem>
+              <SelectItem value="name-desc">Tên Z-A</SelectItem>
             </SelectContent>
           </Select>
 
@@ -103,17 +158,20 @@ export default function ProductsPage() {
             </SelectContent>
           </Select>
 
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[180px] bg-transparent">
-              <SelectValue placeholder="Danh mục" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectItem value="cosplay">Cosplay</SelectItem>
-              <SelectItem value="figure">Figure</SelectItem>
-              <SelectItem value="merchandise">Merchandise</SelectItem>
-            </SelectContent>
-          </Select>
+          <AsyncSelect
+            value={category}
+            onChange={setCategory}
+            fetchOptions={async (search: string) => {
+              const options = await fetchCategories(search);
+              return options.map((opt) => ({
+                id: opt.id,
+                label: opt.name,
+              }));
+            }}
+            placeholder="Danh mục"
+            disabled={categoriesLoading}
+          />
+          {categoriesError && <p className="text-sm text-red-600">{categoriesError}</p>}
 
           <div className="ml-auto flex items-center gap-2">
             <span className="text-sm text-muted-foreground">
@@ -142,17 +200,14 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Product Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {loading && <p>Đang tải...</p>}
+          {loading && Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
           {error && <p className="text-red-500">{error}</p>}
-          {data?.items?.map((product) => (
+          {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
-
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
           <div className="mt-8 flex justify-center gap-2">
             <Button
@@ -166,17 +221,17 @@ export default function ProductsPage() {
             </Button>
             <div className="flex items-center gap-2">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const page = i + 1
+                const page = i + 1;
                 return (
                   <Button
                     key={page}
-                    variant={currentPage === page ? "default" : "outline"}
+                    variant={currentPage === page ? 'default' : 'outline'}
                     onClick={() => setCurrentPage(page)}
-                    className={currentPage === page ? "" : "bg-transparent"}
+                    className={currentPage === page ? '' : 'bg-transparent'}
                   >
                     {page}
                   </Button>
-                )
+                );
               })}
             </div>
             <Button
@@ -192,5 +247,5 @@ export default function ProductsPage() {
         )}
       </div>
     </MainLayout>
-  )
+  );
 }

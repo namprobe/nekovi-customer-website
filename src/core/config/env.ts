@@ -4,7 +4,7 @@ function normalizeUrl(url: string) {
     return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
-const BASE_URL = normalizeUrl(process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:7284");
+const BASE_URL = normalizeUrl(process.env.NEXT_PUBLIC_BASE_URL || 'https://localhost:7252');
 const PUBLIC_PREFIX = process.env.NEXT_PUBLIC_PUBLIC_PREFIX || "/api/customer";
 
 export const env = {
@@ -18,6 +18,10 @@ export const env = {
         PRODUCT: {
             LIST: `${PUBLIC_PREFIX}/products`,
             DETAIL: (id: string) => `${PUBLIC_PREFIX}/products/${id}`,
+        },
+
+        CATEGORY: {
+            SELECT_LIST: '/api/customer/categories/select-list',
         },
     },
 } as const;
