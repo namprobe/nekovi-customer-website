@@ -23,18 +23,16 @@ export default function ProductsPage() {
   const [debouncedSearch] = useDebounce(searchQuery, 500);
   const [sortBy, setSortBy] = useState('newest');
   const [priceRange, setPriceRange] = useState('all');
-  const [category, setCategory] = useState('all'); // Lưu id hoặc 'all'
+  const [category, setCategory] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Sử dụng useCategorySelectStore để fetch categories
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
     useCategorySelectStore();
 
-  // Map category id to categoryId
   const categoryIdMap: Record<string, string> = {
     all: '',
-    ...Object.fromEntries(categories.map((cat) => [cat.id, cat.id])), // Ánh xạ id -> id
+    ...Object.fromEntries(categories.map((cat) => [cat.id, cat.id])),
   };
 
   const { data, loading, error } = useCustomerProducts({
@@ -42,22 +40,28 @@ export default function ProductsPage() {
     pageSize: itemsPerPage,
     search: debouncedSearch,
     sortType: sortBy === 'newest' ? undefined : sortBy,
-    categoryId: category === 'all' ? undefined : category, // Dùng trực tiếp category (id)
+    categoryId: category === 'all' ? undefined : category,
     priceRange: priceRange === 'all' ? undefined : priceRange,
   });
 
-  // Transform ProductItem to Product
   const products: Product[] =
     data?.items.map((item) => ({
       id: item.id,
       name: item.name,
-      slug: item.slug || '',
-      description: item.description || '',
+      slug: item.name.toLowerCase().replace(/\s+/g, '-') || 'product-' + item.id, // GetProductList không trả về slug
+      description: item.description || 'Không có mô tả',
       price: item.price,
-      originalPrice: item.originalPrice,
-      discount: item.discount,
+      originalPrice: undefined, // GetProductList không có discountPrice
+      discount: undefined, // GetProductList không có discountPrice
       categoryId: item.categoryId,
-      category: item.category,
+      category: item.category
+        ? {
+          id: item.category.id,
+          name: item.category.name,
+          slug: item.category.name.toLowerCase().replace(/\s+/g, '-'),
+          description: item.category.description,
+        }
+        : undefined,
       images: item.primaryImage
         ? [
           {
@@ -72,15 +76,14 @@ export default function ProductsPage() {
         : [],
       stock: item.stockQuantity,
       isPreOrder: item.isPreOrder || false,
-      tags: item.tags,
-      rating: item.rating,
-      reviewCount: item.reviewCount,
+      tags: [], // GetProductList không trả về productTags
+      rating: 0, // GetProductList không trả về averageRating
+      reviewCount: 0, // GetProductList không trả về reviews
       createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
     })) || [];
 
   const totalPages = data?.totalPages ?? 1;
 
-  // Preload categories khi trang được load
   useEffect(() => {
     if (categories.length === 0) {
       fetchCategories('');
@@ -125,22 +128,17 @@ export default function ProductsPage() {
 
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
           <Button
-            variant={
-              sortBy === 'newest' && priceRange === 'all' && category === 'all'
-                ? 'default'
-                : 'outline'
-            }
+            variant={sortBy === 'newest' && priceRange === 'all' && category === 'all' ? 'default' : 'outline'}
             onClick={() => {
               setSortBy('newest');
               setPriceRange('all');
               setCategory('all');
-              setCurrentPage(1); // tùy chọn: reset trang về 1
+              setCurrentPage(1);
             }}
             className="bg-transparent"
           >
             Sắp xếp lại
           </Button>
-
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[180px] bg-transparent">

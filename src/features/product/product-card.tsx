@@ -2,7 +2,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardContent } from '@/src/components/ui/card';
 import { Badge } from '@/src/components/ui/badge';
@@ -45,6 +45,19 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCa
         <Link href={`/products/${product.id}`}>
           <h3 className="mb-2 line-clamp-2 text-sm font-medium text-balance hover:text-primary">{product.name}</h3>
         </Link>
+
+        <div className="mb-2 flex items-center gap-2">
+          <div className="flex">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                className={`h-4 w-4 ${i < Math.round(product.rating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'
+                  }`}
+              />
+            ))}
+          </div>
+          <span className="text-xs text-muted-foreground">({product.reviewCount || 0})</span>
+        </div>
 
         <div className="mb-3 flex items-center gap-2">
           <span className="text-lg font-bold text-primary">{formatCurrency(product.price)}</span>
