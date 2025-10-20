@@ -4,10 +4,11 @@
 import Link from 'next/link';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
-import { Card, CardContent } from '@/src/components/ui/card';
+import { Card, CardContent, CardTitle } from '@/src/components/ui/card';
 import { Badge } from '@/src/components/ui/badge';
 import type { Product } from '@/src/shared/types';
 import { formatCurrency } from '@/src/shared/utils/format';
+import { usePathname, useSearchParams } from 'next/navigation';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +21,9 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCa
   const discountPercent =
     product.discount ||
     (product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0);
+
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString(); // giữ nguyên query params hiện tại
 
   return (
     <Card className="group relative overflow-hidden transition-all hover:shadow-lg">

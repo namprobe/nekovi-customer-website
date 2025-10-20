@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { Button } from '@/src/components/ui/button';
@@ -16,12 +16,19 @@ import { useProductDetail } from '@/src/features/product/hooks/use-product-detai
 import { Product } from '@/src/shared/types';
 import { productService } from '@/src/entities/product/service/product-service';
 import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
+  const handleBack = () => {
+    // Nếu có query, giữ nguyên, nếu không thì về trang /products
+    router.push(`/products${queryString ? '?' + queryString : ''}`);
+  };
 
   // ---------------- Hooks ----------------
   const [selectedImage, setSelectedImage] = useState(0);
@@ -102,8 +109,9 @@ export default function ProductDetailPage() {
       <MainLayout>
         <div className="container mx-auto px-4 py-12 text-center">
           <h1 className="text-2xl font-bold">Không tìm thấy sản phẩm</h1>
-          <Button onClick={() => router.push('/products')} className="mt-4">
-            Quay lại danh sách sản phẩm
+          <Button onClick={handleBack} variant="outline" className="mb-4">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Quay lại
           </Button>
         </div>
       </MainLayout>
