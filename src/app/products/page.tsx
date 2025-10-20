@@ -25,7 +25,7 @@ export default function ProductsPage() {
   const [priceRange, setPriceRange] = useState('all');
   const [category, setCategory] = useState('all'); // Lưu id hoặc 'all'
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 12;
 
   // Sử dụng useCategorySelectStore để fetch categories
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
@@ -125,12 +125,22 @@ export default function ProductsPage() {
 
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
           <Button
-            variant={sortBy === 'newest' ? 'default' : 'outline'}
-            onClick={() => setSortBy('newest')}
+            variant={
+              sortBy === 'newest' && priceRange === 'all' && category === 'all'
+                ? 'default'
+                : 'outline'
+            }
+            onClick={() => {
+              setSortBy('newest');
+              setPriceRange('all');
+              setCategory('all');
+              setCurrentPage(1); // tùy chọn: reset trang về 1
+            }}
             className="bg-transparent"
           >
-            Sắp xếp theo
+            Sắp xếp lại
           </Button>
+
 
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-[180px] bg-transparent">

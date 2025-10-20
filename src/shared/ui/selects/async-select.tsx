@@ -1,4 +1,4 @@
-// src/shared/ui/selects/async-select.tsx
+//src/shared/ui/selects/async-select.tsx
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
@@ -26,91 +26,101 @@ export function AsyncSelect({ value, onChange, fetchOptions, placeholder, disabl
     const [isOpen, setIsOpen] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Lưu trữ option đã chọn để giữ trong danh sách lọc
-    const selectedOption = options.find((opt) => opt.id === value) || null;
+    // Lưu option đã chọn
+    const selectedOption = options.find((opt) => opt.id === value);
 
     const loadOptions = useCallback(
         debounce(async (searchValue: string) => {
-            console.log('loadOptions called with:', searchValue);
             setLoading(true);
             try {
                 const res = await fetchOptions(searchValue);
-                // Nếu có option đã chọn và nó khớp với search, thêm vào danh sách
-                const filteredOptions = res.filter((opt) =>
+
+                // Filter theo search
+                const filtered = res.filter((opt) =>
                     searchValue ? opt.label.toLowerCase().includes(searchValue.toLowerCase()) : true
                 );
-                if (selectedOption && value !== 'all' && searchValue) {
-                    const isSelectedOptionInResults = filteredOptions.some((opt) => opt.id === selectedOption.id);
-                    if (!isSelectedOptionInResults && selectedOption.label.toLowerCase().includes(searchValue.toLowerCase())) {
-                        filteredOptions.unshift(selectedOption); // Thêm option đã chọn vào đầu danh sách
-                    }
+
+                // Nếu option đã chọn không có trong filtered, thêm vào đầu
+                if (value && value !== 'all' && selectedOption) {
+                    const exists = filtered.some((opt) => opt.id === selectedOption.id);
+                    if (!exists) filtered.unshift(selectedOption);
                 }
-                setOptions(filteredOptions);
-            } catch (error) {
-                console.error('Fetch error:', error);
+
+                setOptions(filtered);
+            } catch (err) {
+                console.error('Fetch error:', err);
+                setOptions([]);
             } finally {
                 setLoading(false);
             }
-        }, 500),
+        }, 300),
         [fetchOptions, selectedOption, value]
     );
 
+    // Mở dropdown
     const handleOpenChange = useCallback(
         (open: boolean) => {
             setIsOpen(open);
             if (open && options.length === 0) {
-                loadOptions(''); // Load toàn bộ danh sách khi mở lần đầu
+                loadOptions(''); // chỉ load lần đầu
             }
-            if (!open) {
-                setSearch(''); // Reset search khi đóng dropdown
-            }
+            if (!open) setSearch('');
         },
-        [options, loadOptions]
+        [options.length, loadOptions]
     );
 
-    // Preload nếu value không có trong options
+    // Khi value thay đổi và chưa có trong options, thêm vào danh sách
     useEffect(() => {
         if (value && value !== 'all' && !options.find((opt) => opt.id === value)) {
-            loadOptions('');
+            loadOptions(search);
         }
-    }, [value, options, loadOptions]);
+    }, [value, options, loadOptions, search]);
 
-    // Focus input khi dropdown mở
+    // Focus input khi mở
     useEffect(() => {
         if (isOpen && inputRef.current) {
-            setTimeout(() => {
-                inputRef.current?.focus();
-            }, 0);
+            setTimeout(() => inputRef.current?.focus(), 0);
         }
     }, [isOpen]);
 
-    // Xử lý thay đổi search
     const handleSearchChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
-            const newValue = e.target.value;
-            console.log('Search changed:', newValue);
-            setSearch(newValue);
-            loadOptions(newValue); // Gọi loadOptions với debounce
+            const val = e.target.value;
+            setSearch(val);
+            loadOptions(val);
         },
         [loadOptions]
     );
 
-    // Xử lý khi chọn option
     const handleValueChange = useCallback(
-        (newValue: string) => {
-            onChange(newValue);
-            setSearch(''); // Reset search sau khi chọn
+        (val: string) => {
+            onChange(val);
+            setSearch('');
         },
         [onChange]
     );
 
     return (
-        <Select value={value} onValueChange={handleValueChange} onOpenChange={handleOpenChange} disabled={disabled}>
+        <Select
+            value={value}
+            onValueChange={handleValueChange}
+            onOpenChange={handleOpenChange}
+            disabled={disabled}
+        >
             <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder={placeholder} />
             </SelectTrigger>
 
-            <SelectContent className="async-select-content">
+            <SelectContent
+                className="async-select-content"
+                onKeyDown={(e) => {
+                    // Ngăn radix Select xử lý type-to-select
+                    const keysToPrevent = ['ArrowDown', 'ArrowUp', 'Enter', ' '];
+                    if (keysToPrevent.includes(e.key)) {
+                        e.stopPropagation();
+                    }
+                }}
+            >
                 <div className="async-select-search">
                     <input
                         ref={inputRef}
@@ -118,24 +128,24 @@ export function AsyncSelect({ value, onChange, fetchOptions, placeholder, disabl
                         value={search}
                         onChange={handleSearchChange}
                         placeholder="Tìm kiếm danh mục..."
-                        className="w-full border rounded px-2 py-1 text-sm"
+                        className="
+                            w-full px-2 py-1 text-sm rounded
+                            border border-input bg-background text-foreground
+                            focus:outline-none focus:ring-2 focus:ring-ring
+                            placeholder:text-muted-foreground
+                        "
                         autoComplete="off"
-                        onKeyDown={(e) => {
-                            // Chặn phím điều hướng và Enter để ngăn tự động chọn
-                            if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(e.key)) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                            }
-                        }}
-                        onKeyUp={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
                     />
+
                 </div>
+
 
                 <div className="async-select-scroll">
                     <SelectItem value="all">Tất cả</SelectItem>
-                    {options.map((option) => (
-                        <SelectItem key={option.id} value={option.id}>
-                            {option.label}
+                    {options.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>
+                            {opt.label}
                         </SelectItem>
                     ))}
                     {loading && <div className="p-2 text-center text-sm">Đang tải...</div>}
@@ -145,5 +155,6 @@ export function AsyncSelect({ value, onChange, fetchOptions, placeholder, disabl
                 </div>
             </SelectContent>
         </Select>
+
     );
 }
