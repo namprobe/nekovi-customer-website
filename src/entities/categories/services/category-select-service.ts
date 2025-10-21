@@ -28,9 +28,7 @@ export const useCategorySelectStore = create<CategorySelectState>()(
             try {
                 set({ isLoading: true, error: null });
                 const endpoint = `${env.ENDPOINTS.CATEGORY.SELECT_LIST}${search ? `?search=${encodeURIComponent(search)}` : ''}`;
-                console.log(`Category Fetch URL: ${endpoint}`);
                 const res = await api.get<CategorySelectItem[]>(endpoint);
-                console.log(`Category Response:`, res);
                 set({ options: res, isLoading: false });
                 return res;
             } catch (error: any) {

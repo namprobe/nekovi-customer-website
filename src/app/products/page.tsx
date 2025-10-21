@@ -1,4 +1,3 @@
-// src/app/products/page.tsx
 'use client';
 
 import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';
@@ -27,11 +26,12 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [priceRange, setPriceRange] = useState(searchParams.get('price') || 'all');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');
+  const [animeId, setAnimeId] = useState(searchParams.get('animeId') || '');
+  const [animeTitle, setAnimeTitle] = useState(searchParams.get('animeTitle') || '');
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const itemsPerPage = 12;
 
   const [inputPage, setInputPage] = useState<number | "">(currentPage);
-
 
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
     useCategorySelectStore();
@@ -52,9 +52,11 @@ export default function ProductsPage() {
     if (sortBy !== 'newest') params.set('sort', sortBy);
     if (priceRange !== 'all') params.set('price', priceRange);
     if (category !== 'all') params.set('cat', category);
+    if (animeId) params.set('animeId', animeId);
+    if (animeTitle) params.set('animeTitle', animeTitle);
     if (currentPage !== 1) params.set('page', String(currentPage));
     router.replace(`/products?${params.toString()}`, { scroll: false });
-  }, [searchQuery, sortBy, priceRange, category, currentPage, router]);
+  }, [searchQuery, sortBy, priceRange, category, animeId, animeTitle, currentPage, router]);
 
   const { data, loading, error } = useCustomerProducts({
     page: currentPage,
@@ -63,6 +65,7 @@ export default function ProductsPage() {
     sortType: sortBy === 'newest' ? undefined : sortBy,
     categoryId: category === 'all' ? undefined : category,
     priceRange: priceRange === 'all' ? undefined : priceRange,
+    animeId: animeId || undefined,
   });
 
   const products: Product[] =
@@ -107,7 +110,9 @@ export default function ProductsPage() {
       {/* Search & Filters */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="mb-4 text-3xl font-bold">Kết quả tìm kiếm cho '{debouncedSearch || 'figure'}'</h1>
+          <h1 className="mb-4 text-3xl font-bold">
+            Kết quả tìm kiếm cho '{animeTitle || debouncedSearch || 'sản phẩm'}'
+          </h1>
           <div className="relative">
             <Input type="text" placeholder="Tìm kiếm sản phẩm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-10" />
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -116,8 +121,15 @@ export default function ProductsPage() {
 
         <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg border bg-card p-4">
           <Button
-            variant={sortBy === 'newest' && priceRange === 'all' && category === 'all' ? 'default' : 'outline'}
-            onClick={() => { setSortBy('newest'); setPriceRange('all'); setCategory('all'); setCurrentPage(1); }}
+            variant={sortBy === 'newest' && priceRange === 'all' && category === 'all' && !animeId ? 'default' : 'outline'}
+            onClick={() => {
+              setSortBy('newest');
+              setPriceRange('all');
+              setCategory('all');
+              setAnimeId('');
+              setAnimeTitle('');
+              setCurrentPage(1);
+            }}
             className="bg-transparent"
           >
             Sắp xếp lại
@@ -175,7 +187,6 @@ export default function ProductsPage() {
                 if (val > totalPages) val = totalPages;
                 setCurrentPage(val);
               }}
-
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   let val = typeof inputPage === 'number' ? inputPage : NaN;
@@ -184,7 +195,6 @@ export default function ProductsPage() {
                   setCurrentPage(val);
                 }
               }}
-
               className="w-12 text-center border rounded"
             />
             <span>/ {totalPages}</span>
@@ -234,8 +244,6 @@ export default function ProductsPage() {
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-
-
       </div>
     </MainLayout>
   );

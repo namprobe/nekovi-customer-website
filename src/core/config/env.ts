@@ -21,7 +21,10 @@ export const env = {
         },
 
         CATEGORY: {
-            SELECT_LIST: '/api/customer/categories/select-list',
+            SELECT_LIST: `${PUBLIC_PREFIX}/categories/select-list`,
+        },
+        ANIMESERIES: {
+            SELECT_LIST: `${PUBLIC_PREFIX}/anime-series`,
         },
     },
 } as const;
