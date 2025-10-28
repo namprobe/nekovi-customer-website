@@ -45,6 +45,11 @@ export default function ProductsPage() {
     if (categories.length === 0) fetchCategories('');
   }, [categories, fetchCategories]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
+
   // Đồng bộ state lên URL
   useEffect(() => {
     const params = new URLSearchParams();

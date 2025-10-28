@@ -22,6 +22,7 @@ export interface ProductReview {
     title?: string;
     comment?: string;
     userName?: string;
+    createdAt: string;
 }
 
 export interface EventItem {

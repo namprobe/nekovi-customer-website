@@ -324,6 +324,53 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
+        <section className="mt-10 space-y-6">
+          <h2 className="text-xl font-semibold">Customer Reviews</h2>
+
+          {product.reviews?.length ? (
+            product.reviews.map((r) => {
+              const stars = Array.from({ length: 5 }, (_, i) => i < r.rating);
+              const date = new Date(r.createdAt);
+              const monthYear = `(${date.getMonth() + 1}/${date.getFullYear()})`;
+
+              return (
+                <div key={r.id} className="border-b pb-4">
+                  {/* dòng 1: tên + sao + (MM/YYYY) */}
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="font-semibold text-base text-primary">
+                      {r.userName ?? "Anonymous"}
+                    </span>
+
+                    <div className="flex">
+                      {stars.map((filled, idx) => (
+                        <span key={idx} className={filled ? "text-yellow-400" : "text-gray-400"}>
+                          ★
+                        </span>
+                      ))}
+                    </div>
+
+                    <span className="text-muted-foreground text-xs">{monthYear}</span>
+                  </div>
+
+                  {/* title nếu có */}
+                  {r.title && (
+                    <h3 className="font-semibold text-sm mt-1">{r.title}</h3>
+                  )}
+
+                  {/* comment */}
+                  {r.comment && (
+                    <p className="text-sm text-foreground mt-1">"{r.comment}"</p>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted-foreground">No reviews yet</p>
+          )}
+        </section>
+
+
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
