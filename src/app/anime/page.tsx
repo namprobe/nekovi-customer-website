@@ -1,32 +1,70 @@
+//src/app/anime/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
-import { AnimeCard } from '@/src/features/anime/components/AnimeCard';
+import { AnimeCard } from '@/src/features/anime/components/animeCard';
 import { useAnimeList } from '@/src/features/anime/hooks/useAnimeList';
 import { useFeaturedAnime } from '@/src/features/anime/hooks/useFeaturedAnime';
 import { AnimeSeriesFilter } from '@/src/entities/anime/type/anime';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
 export default function AnimePage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [inputPage, setInputPage] = useState<number | "">(1);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // ---------- Đọc từ URL ----------
+  const urlPage = searchParams.get('page') ? Math.max(1, Number(searchParams.get('page'))) : 1;
+  const urlSearch = searchParams.get('q') ?? '';
+  const urlSort = searchParams.get('sort') ?? 'all';
+
+  const [searchQuery, setSearchQuery] = useState(urlSearch);
+  const [sortBy, setSortBy] = useState(urlSort);
+  const [currentPage, setCurrentPage] = useState(urlPage);
+  const [inputPage, setInputPage] = useState<number | ''>(urlPage);
 
   const { animeList, totalItems, isLoading, error, fetchAnime } = useAnimeList();
   const featuredAnime = useFeaturedAnime();
 
   const totalPages = Math.ceil(totalItems / 12);
 
-  // Đồng bộ inputPage với currentPage
+  const latestFilter = useRef<string>("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
+
+  // ----- Giữ input đồng bộ với currentPage -----
   useEffect(() => {
     setInputPage(currentPage);
   }, [currentPage]);
 
-  // Fetch khi search, sort hoặc page thay đổi
+  // ----- Cập nhật URL (chỉ khi thực sự thay đổi) -----
+  const prevUrlRef = useRef<string>('');
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (searchQuery) params.set('q', searchQuery);
+    if (sortBy !== 'all') params.set('sort', sortBy);
+    if (currentPage !== 1) params.set('page', String(currentPage));
+
+    const newUrl = `${pathname}?${params.toString()}`;
+
+    // Chỉ replace khi URL khác
+    if (prevUrlRef.current !== newUrl) {
+      prevUrlRef.current = newUrl;
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [searchQuery, sortBy, currentPage, pathname, router]);
+
+  // ----- Fetch dữ liệu khi filter thay đổi -----
   useEffect(() => {
     let sortField = 'createdAt';
     let asc = false;
@@ -52,8 +90,17 @@ export default function AnimePage() {
       isAscending: asc,
     };
 
+    const fingerprint = JSON.stringify(filter);
+    if (latestFilter.current === fingerprint) return; // <-- chặn loop
+    latestFilter.current = fingerprint;
+
     fetchAnime(filter);
-  }, [searchQuery, sortBy, currentPage]);
+  }, [searchQuery, sortBy, currentPage, fetchAnime]);
+
+  // ----- Scroll to top khi đổi trang -----
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
 
   return (
     <MainLayout>
@@ -94,7 +141,10 @@ export default function AnimePage() {
               </div>
               <select
                 value={sortBy}
-                onChange={e => setSortBy(e.target.value)}
+                onChange={e => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);               // reset page khi đổi sort
+                }}
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="all">Tất cả</option>
@@ -122,7 +172,10 @@ export default function AnimePage() {
 
             {/* Paging */}
             <div className="flex justify-center items-center gap-2 mt-8">
-              <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
+              <Button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span>Trang</span>
@@ -149,26 +202,19 @@ export default function AnimePage() {
                 className="w-12 text-center border rounded"
               />
               <span>/ {totalPages}</span>
-              <Button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
+              <Button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </section>
         )}
 
-        {/* Loading / Error / Empty States */}
-        {isLoading && (
-          <div className="py-12 text-center">
-            <p>Đang tải danh sách anime...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="py-12 text-center text-red-500">
-            <p>{error}</p>
-          </div>
-        )}
-
+        {/* Loading / Error / Empty */}
+        {isLoading && <div className="py-12 text-center"><p>Đang tải danh sách anime...</p></div>}
+        {error && <div className="py-12 text-center text-red-500"><p>{error}</p></div>}
         {!isLoading && !error && animeList.length === 0 && (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 h-24 w-24 rounded-full bg-muted flex items-center justify-center">
@@ -178,7 +224,6 @@ export default function AnimePage() {
             <p className="text-muted-foreground">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
           </div>
         )}
-
       </div>
     </MainLayout>
   );

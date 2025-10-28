@@ -26,5 +26,9 @@ export const env = {
         ANIMESERIES: {
             SELECT_LIST: `${PUBLIC_PREFIX}/anime-series`,
         },
+        PRODUCTREVIEW: {
+            CREATE: `${PUBLIC_PREFIX}/product-reviews`,
+            UPDATE: (id: string) => `${PUBLIC_PREFIX}/product-reviews/${id}`,
+        }
     },
 } as const;

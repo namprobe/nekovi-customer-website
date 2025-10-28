@@ -1,3 +1,4 @@
+//src/app/products/page.tsx
 'use client';
 
 import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';

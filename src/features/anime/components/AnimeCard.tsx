@@ -1,3 +1,4 @@
+// src/features/anime/components/animeCard.tsx
 import Link from 'next/link';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardContent } from '@/src/components/ui/card';
@@ -6,11 +7,29 @@ import { AnimeSeries } from '@/src/entities/anime/type/anime';
 
 interface AnimeCardProps {
     anime: AnimeSeries;
+    // Nhận filter từ trang cha
+    currentFilters?: {
+        q?: string;
+        sort?: string;
+        page?: number;
+    };
 }
 
-export function AnimeCard({ anime }: AnimeCardProps) {
+export function AnimeCard({ anime, currentFilters = {} }: AnimeCardProps) {
+    const { q = '', sort = 'all', page = 1 } = currentFilters;
+
+    // Tạo URL giữ nguyên filter + thêm animeId + reset page sản phẩm về 1
+    const productUrl = new URL('/products', typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+
+    productUrl.searchParams.set('animeId', anime.id);
+    productUrl.searchParams.set('animeTitle', anime.title);
+
+    if (q) productUrl.searchParams.set('q', q);
+    if (sort !== 'all') productUrl.searchParams.set('sort', sort);
+    productUrl.searchParams.set('page', '1'); // reset trang sản phẩm
+
     return (
-        <Link href={`/products?animeId=${anime.id}&animeTitle=${encodeURIComponent(anime.title)}`}>
+        <Link href={productUrl.toString()}>
             <Card className="group overflow-hidden transition-all hover:shadow-lg cursor-pointer">
                 <div className="relative aspect-video overflow-hidden">
                     <img
