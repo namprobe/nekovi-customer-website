@@ -1,9 +1,12 @@
+//src/core/providers/auth-provider.tsx
 "use client"
 
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import type { User } from "@/src/shared/types"
 import { mockUser } from "@/src/core/lib/mock-data"
+
+import { useRouter } from "next/navigation";
 
 interface AuthContextType {
   user: User | null
@@ -12,6 +15,7 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>
   logout: () => void
   updateProfile: (data: Partial<User>) => Promise<void>
+  redirectToLogin: () => void;          // <-- mới
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -19,6 +23,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  const router = useRouter();
 
   // Initialize authentication state
   useEffect(() => {
@@ -29,6 +35,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     // No auto-login - user starts as not authenticated
   }, [])
+
+  // Redirect to login page
+  const redirectToLogin = () => {
+    // Lưu URL hiện tại để quay lại sau khi login thành công
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
+    router.push(`/login?returnUrl=${returnUrl}`);
+  };
 
   const login = async (email: string, password: string) => {
     // Mock login - always succeeds
@@ -63,7 +76,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, register, logout, updateProfile }}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated,
+      login,
+      register,
+      logout,
+      updateProfile,
+      redirectToLogin,          // <-- expose
+    }}>
       {children}
     </AuthContext.Provider>
   )

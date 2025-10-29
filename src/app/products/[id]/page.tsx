@@ -18,6 +18,11 @@ import { productService } from '@/src/entities/product/service/product-service';
 import { ArrowLeft } from 'lucide-react';
 import { ChevronLeft } from 'lucide-react';
 
+import { ProductReviewForm } from '@/src/features/productReview/ProductReviewForm';
+import { useAuth } from '@/src/core/providers/auth-provider';
+import { productReviewService } from '@/src/entities/productReview/service/product-review-service';
+import { ProductReviewItem } from '@/src/entities/productReview/type/product-review';
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -25,10 +30,18 @@ export default function ProductDetailPage() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
+
+  // === AUTH & REVIEWS STATE ===
+  const { user, redirectToLogin } = useAuth(); // Lấy user từ context
+  const [reviews, setReviews] = useState<ProductReviewItem[]>([]);
+  const [userReview, setUserReview] = useState<ProductReviewItem | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  // ---------------- Handlers ----------------
   const handleBack = () => {
     // Nếu có query, giữ nguyên, nếu không thì về trang /products
     router.push(`/products${queryString ? '?' + queryString : ''}`);
   };
+
 
   // ---------------- Hooks ----------------
   const [selectedImage, setSelectedImage] = useState(0);
@@ -36,6 +49,51 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   const { data: product, loading, error } = useProductDetail(params.id as string);
+
+
+  // === LOAD REVIEWS KHI product CÓ DỮ LIỆU ===
+  useEffect(() => {
+    if (!product?.reviews) return;
+
+    // Map từ ProductReview (backend) → ProductReviewItem (frontend)
+    const mappedReviews: ProductReviewItem[] = product.reviews.map((r) => ({
+      id: r.id,
+      productId: product.id,
+      userId: r.userId || '', // backend phải trả userId
+      userName: r.userName,
+      rating: r.rating,
+      title: r.title,
+      comment: r.comment,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+    }));
+
+    setReviews(mappedReviews);
+
+    // Tìm đánh giá của user hiện tại
+    if (user) {
+      const myReview = mappedReviews.find((r) => r.userId === user.id);
+      setUserReview(myReview || null);
+    }
+  }, [product, user]);
+
+  // === REFRESH REVIEWS SAU KHI GỬI ===
+  const handleReviewSuccess = async () => {
+    try {
+      const updatedReviews = await productReviewService.getByProduct(params.id as string);
+      setReviews(updatedReviews);
+      const myNewReview = updatedReviews.find((r) => r.userId === user?.id);
+      setUserReview(myNewReview || null);
+      setIsEditing(false);
+    } catch (err) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải lại đánh giá',
+        variant: 'destructive',
+      });
+    }
+  };
+
 
   // ---------------- Fetch Related Products ----------------
   useEffect(() => {
@@ -167,8 +225,12 @@ export default function ProductDetailPage() {
     createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
   };
 
-
   const images = mappedProduct.images;
+
+
+
+
+
 
   // ---------------- Handlers ----------------
   const handleAddToCart = () => {
@@ -324,48 +386,85 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        <section className="mt-10 space-y-6">
-          <h2 className="text-xl font-semibold">Customer Reviews</h2>
+        <section className="mt-10 space-y-8">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Đánh giá sản phẩm</h2>
+            {user && !userReview && !isEditing && (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                Viết đánh giá
+              </Button>
+            )}
+          </div>
 
-          {product.reviews?.length ? (
-            product.reviews.map((r) => {
-              const stars = Array.from({ length: 5 }, (_, i) => i < r.rating);
-              const date = new Date(r.createdAt);
-              const monthYear = `(${date.getMonth() + 1}/${date.getFullYear()})`;
+          {/* Form tạo/sửa */}
+          {isEditing && (
+            <ProductReviewForm
+              productId={params.id as string}
+              existingReview={userReview || undefined}
+              onSuccess={() => {
+                handleReviewSuccess();
+                setIsEditing(false);
+              }}
+            />
+          )}
 
-              return (
-                <div key={r.id} className="border-b pb-4">
-                  {/* dòng 1: tên + sao + (MM/YYYY) */}
-                  <div className="flex items-center gap-3 text-sm">
-                    <span className="font-semibold text-base text-primary">
-                      {r.userName ?? "Anonymous"}
-                    </span>
-
-                    <div className="flex">
-                      {stars.map((filled, idx) => (
-                        <span key={idx} className={filled ? "text-yellow-400" : "text-gray-400"}>
-                          ★
-                        </span>
-                      ))}
-                    </div>
-
-                    <span className="text-muted-foreground text-xs">{monthYear}</span>
+          {/* Đánh giá của user */}
+          {userReview && !isEditing && (
+            <div className="rounded-lg border bg-card p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-primary">Đánh giá của bạn</span>
+                  <div className="flex">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-5 w-5 ${i < userReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                      />
+                    ))}
                   </div>
-
-                  {/* title nếu có */}
-                  {r.title && (
-                    <h3 className="font-semibold text-sm mt-1">{r.title}</h3>
-                  )}
-
-                  {/* comment */}
-                  {r.comment && (
-                    <p className="text-sm text-foreground mt-1">"{r.comment}"</p>
-                  )}
                 </div>
-              );
-            })
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  Sửa
+                </Button>
+              </div>
+              {userReview.title && <h3 className="font-medium">{userReview.title}</h3>}
+              {userReview.comment && <p className="mt-1 text-sm text-foreground">"{userReview.comment}"</p>}
+            </div>
+          )}
+
+          {/* Danh sách đánh giá khác */}
+          {reviews.length > 0 ? (
+            <div className="space-y-6">
+              {reviews
+                .filter((r) => r.userId !== user?.id)
+                .map((r) => {
+                  const date = new Date(r.createdAt);
+                  const monthYear = `(${date.getMonth() + 1}/${date.getFullYear()})`;
+
+                  return (
+                    <div key={r.id} className="border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="font-semibold text-base text-primary">
+                          {r.userName ?? 'Ẩn danh'}
+                        </span>
+                        <div className="flex">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star
+                              key={i}
+                              className={`h-4 w-4 ${i < r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-muted-foreground text-xs">{monthYear}</span>
+                      </div>
+                      {r.title && <h3 className="mt-1 font-medium text-sm">{r.title}</h3>}
+                      {r.comment && <p className="mt-1 text-sm text-foreground">"{r.comment}"</p>}
+                    </div>
+                  );
+                })}
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No reviews yet</p>
+            <p className="text-sm text-muted-foreground">Chưa có đánh giá nào.</p>
           )}
         </section>
 

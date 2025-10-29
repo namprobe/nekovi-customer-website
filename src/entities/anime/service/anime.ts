@@ -18,7 +18,7 @@ export class AnimeService {
         if (title) params.append('Title', title);
         if (releaseYear) params.append('ReleaseYear', String(releaseYear));
 
-        return api.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIMESERIES.SELECT_LIST}?${params.toString()}`);
+        return api.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIME_SERIES.SELECT_LIST}?${params.toString()}`);
     }
 }
 

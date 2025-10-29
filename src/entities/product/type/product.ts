@@ -18,11 +18,13 @@ export interface ProductTag {
 
 export interface ProductReview {
     id: string;
+    userId: string;
     rating: number;
     title?: string;
     comment?: string;
     userName?: string;
     createdAt: string;
+    updatedAt?: string;
 }
 
 export interface EventItem {
