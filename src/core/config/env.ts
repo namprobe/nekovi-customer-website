@@ -7,13 +7,15 @@ function normalizeUrl(url: string): string {
 const BASE_URL = normalizeUrl(
     process.env.NEXT_PUBLIC_BASE_URL || "https://localhost:7252"
 );
-const PUBLIC_PREFIX = process.env.NEXT_PUBLIC_PUBLIC_PREFIX || "/api/customer";
+const CUSTOMER_PREFIX = process.env.NEXT_PUBLIC_CUSTOMER_PREFIX || "/api/customer";
+const COMMON_PREFIX = process.env.NEXT_PUBLIC_COMMON_PREFIX || "/api/common";
 
-const API_BASE = `${BASE_URL}${PUBLIC_PREFIX}`;
+const API_BASE = `${BASE_URL}${CUSTOMER_PREFIX}`;
 
 export const env = {
     BASE_URL,
-    PUBLIC_PREFIX,
+    CUSTOMER_PREFIX,
+    COMMON_PREFIX,
     API_BASE,
 
     APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "Customer FE",
