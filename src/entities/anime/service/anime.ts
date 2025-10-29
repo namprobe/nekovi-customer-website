@@ -1,4 +1,4 @@
-import { api } from '@/src/core/lib/api-client';
+import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
 import { PaginateResult } from '@/src/shared/types/common';
 import { AnimeSeries, AnimeSeriesFilter } from '@/src/entities/anime/type/anime';
@@ -18,7 +18,13 @@ export class AnimeService {
         if (title) params.append('Title', title);
         if (releaseYear) params.append('ReleaseYear', String(releaseYear));
 
-        return api.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIME_SERIES.SELECT_LIST}?${params.toString()}`);
+        const response = await apiClient.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIME_SERIES.SELECT_LIST}?${params.toString()}`);
+        
+        if (!response.isSuccess || !response.data) {
+            throw new Error(response.message || 'Không thể lấy danh sách anime series');
+        }
+        
+        return response.data;
     }
 }
 

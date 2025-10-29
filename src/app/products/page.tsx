@@ -42,9 +42,13 @@ export default function ProductsPage() {
     setInputPage(currentPage);
   }, [currentPage]);
 
+  // Chỉ fetch categories 1 lần khi mount
   useEffect(() => {
-    if (categories.length === 0) fetchCategories('');
-  }, [categories, fetchCategories]);
+    if (categories.length === 0) {
+      fetchCategories('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });

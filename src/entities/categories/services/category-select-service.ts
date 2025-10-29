@@ -1,7 +1,7 @@
 // src/entities/categories/services/category-select-service.ts
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { api } from '@/src/core/lib/api-client';
+import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
 
 export interface CategorySelectItem {
@@ -28,7 +28,11 @@ export const useCategorySelectStore = create<CategorySelectState>()(
             try {
                 set({ isLoading: true, error: null });
                 const endpoint = `${env.ENDPOINTS.CATEGORY.SELECT_LIST}${search ? `?search=${encodeURIComponent(search)}` : ''}`;
-                const res = await api.get<CategorySelectItem[]>(endpoint);
+                const apiResult = await apiClient.get<CategorySelectItem[]>(endpoint);
+                if (!apiResult.isSuccess || !apiResult.data) {
+                    throw new Error(apiResult.message || 'Không thể lấy danh sách danh mục');
+                }
+                const res = apiResult.data;
                 set({ options: res, isLoading: false });
                 return res;
             } catch (error: any) {

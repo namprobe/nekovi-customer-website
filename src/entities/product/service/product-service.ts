@@ -1,14 +1,8 @@
 // src/entities/product/service/product-service.ts
-import { api } from '@/src/core/lib/api-client';
+import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
 import { PaginateResult } from '@/src/shared/types/common';
 import { ProductItem, ProductQuery } from '../type/product';
-
-interface ApiResult<T> {
-    isSuccess: boolean;
-    message: string;
-    data?: T;
-}
 
 export class ProductService {
     async getProductList(query: ProductQuery = {}): Promise<PaginateResult<ProductItem>> {
@@ -24,19 +18,23 @@ export class ProductService {
         if (sortType) params.append('SortType', sortType);
         if (priceRange) params.append('PriceRange', priceRange);
 
-        return api.get<PaginateResult<ProductItem>>(`${env.ENDPOINTS.PRODUCT.LIST}?${params.toString()}`);
+        const response = await apiClient.get<PaginateResult<ProductItem>>(`${env.ENDPOINTS.PRODUCT.LIST}?${params.toString()}`);
+        
+        if (!response.isSuccess || !response.data) {
+            throw new Error(response.message || 'Không thể lấy danh sách sản phẩm');
+        }
+        
+        return response.data;
     }
 
     async getProductById(id: string): Promise<ProductItem> {
-        try {
-            const response = await api.get<ApiResult<ProductItem>>(env.ENDPOINTS.PRODUCT.DETAIL(id));
-            if (!response.isSuccess || !response.data) {
-                throw new Error(response.message || `Không tìm thấy sản phẩm với ID: ${id}`);
-            }
-            return response.data;
-        } catch (error: any) {
-            throw new Error(error.message || `Lỗi khi lấy sản phẩm với ID: ${id}`);
+        const response = await apiClient.get<ProductItem>(env.ENDPOINTS.PRODUCT.DETAIL(id));
+        
+        if (!response.isSuccess || !response.data) {
+            throw new Error(response.message || `Không tìm thấy sản phẩm với ID: ${id}`);
         }
+        
+        return response.data;
     }
 }
 
