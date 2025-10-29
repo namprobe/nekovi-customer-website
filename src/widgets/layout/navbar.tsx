@@ -9,6 +9,7 @@ import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/src/core/providers/auth-provider"
 import { useCart } from "@/src/core/providers/cart-provider"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +22,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
   const { getItemCount } = useCart()
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
+
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
+  }
 
   const navLinks = [
     { href: "/anime", label: "Anime" },
@@ -108,7 +115,7 @@ export function Navbar() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <div className="px-2 py-1.5">
-                  <p className="text-sm font-medium">{user?.username}</p>
+                  <p className="text-sm font-medium"> {user?.lastName} {user?.firstName}</p>
                   <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator />
@@ -122,7 +129,7 @@ export function Navbar() {
                   <Link href="/wishlist">Yêu Thích</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   Đăng Xuất
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -166,7 +173,7 @@ export function Navbar() {
                   {isAuthenticated ? (
                     <div className="space-y-4">
                       <div className="px-2 py-1.5">
-                        <p className="text-sm font-medium">{user?.username}</p>
+                        <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
                         <p className="text-xs text-muted-foreground">{user?.email}</p>
                       </div>
                       <div className="space-y-2">
@@ -180,7 +187,7 @@ export function Navbar() {
                           Yêu Thích
                         </Link>
                         <button 
-                          onClick={logout} 
+                          onClick={handleLogout} 
                           className="block text-sm text-destructive hover:text-destructive/80"
                         >
                           Đăng Xuất

@@ -27,6 +27,11 @@ export const env = {
             LOGOUT: "/auth/logout",
             PROFILE: "/auth/profile",
             REFRESH_TOKEN: "/auth/refresh-token",
+            REGISTER: "/auth/register",
+            VERIFY_OTP: "/auth/verify-otp",
+            RESET_PASSWORD: "/auth/reset-password",
+            CHANGE_PASSWORD: "/auth/change-password",
+            UPDATE_PROFILE: "/auth/update-profile",
         },
         PRODUCT: {
             LIST: `/products`,
@@ -43,6 +48,9 @@ export const env = {
             GET_BY_PRODUCT: (productId: string) => `/product-reviews/product/${productId}`,
             UPDATE: (id: string) => `/product-reviews/${id}`,
             DELETE: (id: string) => `/product-reviews/${id}`,
+        },
+        USER_ADDRESS: {
+            BASE: `/user-addresses`,
         },
     },
 } as const;

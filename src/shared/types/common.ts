@@ -26,9 +26,9 @@ export enum EntityStatus {
 }
 
 export enum Gender {
+    Female = 0,
     Male = 1,
-    Female = 2,
-    Other = 3,
+    Other = 2,
 }
 
 export enum AddressType {

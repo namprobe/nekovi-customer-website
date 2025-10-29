@@ -2,6 +2,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/src/components/ui/button';
 import { Textarea } from '@/src/components/ui/textarea';
 import { Input } from '@/src/components/ui/input';
@@ -27,8 +28,9 @@ export function ProductReviewForm({ productId, existingReview, onSuccess }: Prod
     const [comment, setComment] = useState(existingReview?.comment || '');
     const [loading, setLoading] = useState(false);
 
-    const { user, redirectToLogin } = useAuth();
+    const { user } = useAuth();
     const { toast } = useToast();
+    const router = useRouter();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -38,7 +40,7 @@ export function ProductReviewForm({ productId, existingReview, onSuccess }: Prod
                 description: 'Vui lòng đăng nhập để đánh giá sản phẩm',
                 variant: 'destructive',
             });
-            redirectToLogin(); // Chuyển sang trang login
+            router.push('/login'); // Chuyển sang trang login
             return;
         }
 

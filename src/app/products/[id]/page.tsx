@@ -32,7 +32,7 @@ export default function ProductDetailPage() {
   const queryString = searchParams.toString();
 
   // === AUTH & REVIEWS STATE ===
-  const { user, redirectToLogin } = useAuth(); // Lấy user từ context
+  const { user } = useAuth(); // Lấy user từ context
   const [reviews, setReviews] = useState<ProductReviewItem[]>([]);
   const [userReview, setUserReview] = useState<ProductReviewItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);

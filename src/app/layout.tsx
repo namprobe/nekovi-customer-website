@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { AuthProvider } from "@/src/core/providers/auth-provider"
 import { CartProvider } from "@/src/core/providers/cart-provider"
+import { Toaster } from "@/src/components/ui/toaster"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
@@ -27,6 +28,7 @@ export default function RootLayout({
             <CartProvider>{children}</CartProvider>
           </AuthProvider>
         </Suspense>
+        <Toaster />
         <Analytics />
       </body>
     </html>
