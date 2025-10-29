@@ -1,0 +1,22 @@
+.async-select-content {
+  position: relative;
+  width: 100%;
+  max-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.async-select-search {
+  position: sticky; /* luôn ở trên cùng */
+  top: 0;
+  z-index: 50;
+  background-color: white;
+  padding: 4px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.async-select-scroll {
+  overflow-y: auto;
+  flex: 1; /* chiếm hết phần còn lại của dropdown */
+  position: relative;
+}
