@@ -36,7 +36,7 @@ export default function CheckoutPage() {
     fullName: user?.username || "",
     address: "",
     note: "",
-    phone: user?.phone || "",
+    phone: user?.phoneNumber || "",
     email: user?.email || "",
   })
 

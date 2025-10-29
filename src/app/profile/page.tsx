@@ -1,156 +1,96 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { useEffect, useRef } from "react"
 import { useAuth } from "@/src/core/providers/auth-provider"
+import { AuthGuard } from "@/src/components/auth/auth-guard"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
-import { Button } from "@/src/components/ui/button"
-import { Input } from "@/src/components/ui/input"
-import { Label } from "@/src/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/src/components/ui/avatar"
-import { useToast } from "@/src/hooks/use-toast"
 import { Badge } from "@/src/components/ui/badge"
-import { redirect } from "next/navigation"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/src/components/ui/tabs"
+import { UpdateProfileForm } from "@/src/features/profile/components/UpdateProfileForm"
+import { ChangePasswordForm } from "@/src/features/profile/components/ChangePasswordForm"
+import { UserAddressManager } from "@/src/features/profile/components/UserAddressManager"
+import { User, Lock, MapPin } from "lucide-react"
 
-export default function ProfilePage() {
-  const { user, updateProfile } = useAuth()
-  const { toast } = useToast()
+function ProfilePageContent() {
+  const { user, getProfile, isAuthenticated, isHydrated } = useAuth()
+  const profileFetchedRef = useRef(false)
 
-  if (!user) {
-    redirect("/login")
-  }
+  // Always load profile when accessing profile page
+  useEffect(() => {
+    if (isHydrated && isAuthenticated && !profileFetchedRef.current) {
+      profileFetchedRef.current = true
+      getProfile(true) // Force refresh to get latest data
+    }
+  }, [isHydrated, isAuthenticated, getProfile])
 
-  const [formData, setFormData] = useState({
-    username: user.username || "",
-    email: user.email || "",
-    phone: user.phone || "",
-    gender: user.gender || undefined,
-    dateOfBirth: user.dateOfBirth || "",
-  })
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      await updateProfile(formData)
-      toast({
-        title: "Cập nhật thành công",
-        description: "Thông tin của bạn đã được cập nhật",
-      })
-    } catch (error) {
-      toast({
-        title: "Cập nhật thất bại",
-        description: "Vui lòng thử lại sau",
-        variant: "destructive",
+  // Listen for profile updates to trigger refresh
+  useEffect(() => {
+    const handleProfileUpdate = () => {
+      // Save current scroll position
+      const scrollY = window.scrollY
+      
+      // Call getProfile to refresh data
+      getProfile(true).then(() => {
+        // Restore scroll position after data loads
+        // Use setTimeout to ensure DOM has updated
+        setTimeout(() => {
+          window.scrollTo(0, scrollY)
+        }, 0)
       })
     }
-  }
+
+    window.addEventListener('profile-updated', handleProfileUpdate)
+    return () => window.removeEventListener('profile-updated', handleProfileUpdate)
+  }, [getProfile])
 
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-12">
         <div className="mb-8 text-center">
-          <p className="mb-2 text-sm font-medium text-primary">Profile</p>
           <h1 className="text-4xl font-bold text-foreground">Hồ Sơ Của Tôi</h1>
         </div>
 
-        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-3">
-          {/* Left side - Form */}
-          <div className="lg:col-span-2">
-            <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-card p-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="username">Tên đăng nhập</Label>
-                  <Input
-                    id="username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                    className="h-12"
-                  />
-                </div>
+        <div className="mx-auto max-w-7xl">
+          {/* Tabs for different sections */}
+          <Tabs defaultValue="profile" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+              <TabsTrigger value="profile" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden sm:inline">Thông tin</span>
+              </TabsTrigger>
+              <TabsTrigger value="addresses" className="gap-2">
+                <MapPin className="h-4 w-4" />
+                <span className="hidden sm:inline">Địa chỉ</span>
+              </TabsTrigger>
+              <TabsTrigger value="security" className="gap-2">
+                <Lock className="h-4 w-4" />
+                <span className="hidden sm:inline">Bảo mật</span>
+              </TabsTrigger>
+            </TabsList>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="h-12"
-                  />
-                </div>
+            <TabsContent value="profile" className="space-y-6">
+              <UpdateProfileForm />
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Số điện thoại</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="h-12"
-                  />
-                </div>
+            <TabsContent value="addresses" className="space-y-6">
+              <UserAddressManager />
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="gender">Giới tính</Label>
-                  <Input
-                    id="gender"
-                    value={formData.gender}
-                    onChange={(e) => setFormData({ ...formData, gender: e.target.value as "male" | "female" | "other" | undefined })}
-                    className="h-12"
-                  />
-                </div>
-
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="dateOfBirth">Ngày sinh</Label>
-                  <Input
-                    id="dateOfBirth"
-                    type="date"
-                    value={formData.dateOfBirth}
-                    onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                    className="h-12"
-                  />
-                </div>
-              </div>
-
-              <Button type="submit" className="h-12 w-full bg-teal-700 text-white hover:bg-teal-800 md:w-auto">
-                Lưu
-              </Button>
-            </form>
-          </div>
-
-          {/* Right side - Avatar and VIP */}
-          <div className="space-y-6">
-            <div className="rounded-lg border bg-card p-6 text-center">
-              <Avatar className="mx-auto h-32 w-32">
-                <AvatarImage src={user.avatar || "/anime-fan-avatar.png"} alt={user.username} />
-                <AvatarFallback>{user.username.charAt(0).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <h2 className="mt-4 text-2xl font-bold">{user.username}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Dung lượng file tối đa 1 MB
-                <br />
-                Định dạng: JPEG, PNG
-              </p>
-              <Button variant="outline" className="mt-4 bg-transparent">
-                Chọn ảnh
-              </Button>
-            </div>
-
-            <div className="rounded-lg border bg-card p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600">
-                  <span className="text-2xl font-bold text-white">VIP</span>
-                </div>
-                <div>
-                  <h3 className="font-semibold">Danh hiệu</h3>
-                  <Badge variant="secondary" className="mt-1">
-                    Thành viên thường
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </div>
+            <TabsContent value="security" className="space-y-6">
+              <ChangePasswordForm />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </MainLayout>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <ProfilePageContent />
+    </AuthGuard>
   )
 }
