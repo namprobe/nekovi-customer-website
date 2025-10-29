@@ -7,6 +7,7 @@ import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
 import { Heart, ShoppingCart, Eye, Trash2, Star } from "lucide-react"
+import { AuthGuard } from "@/src/components/auth/auth-guard"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { formatCurrency } from "@/src/shared/utils/format"
 
@@ -138,7 +139,7 @@ const mockWishlistItems = [
   },
 ]
 
-export default function WishlistPage() {
+function WishlistPageContent() {
   const [wishlistItems, setWishlistItems] = useState(mockWishlistItems)
   const [sortBy, setSortBy] = useState("newest")
 
@@ -320,5 +321,13 @@ export default function WishlistPage() {
         )}
       </div>
     </MainLayout>
+  )
+}
+
+export default function WishlistPage() {
+  return (
+    <AuthGuard requireAuth={true}>
+      <WishlistPageContent />
+    </AuthGuard>
   )
 }

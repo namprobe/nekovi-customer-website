@@ -6,7 +6,7 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { Button } from '@/src/components/ui/button';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
-import { AnimeCard } from '@/src/features/anime/components/animeCard';
+import { AnimeCard } from '@/src/features/anime/components/AnimeCard';
 import { useAnimeList } from '@/src/features/anime/hooks/useAnimeList';
 import { useFeaturedAnime } from '@/src/features/anime/hooks/useFeaturedAnime';
 import { AnimeSeriesFilter } from '@/src/entities/anime/type/anime';
