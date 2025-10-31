@@ -2,12 +2,11 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Search, ShoppingCart, User, Menu } from "lucide-react"
+import { Search, User, Menu } from "lucide-react"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/src/core/providers/auth-provider"
-import { useCart } from "@/src/core/providers/cart-provider"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -18,10 +17,10 @@ import {
   DropdownMenuTrigger,
 } from "@/src/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
+import { CartPopup } from "@/src/widgets/cart/cart-popup"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
-  const { getItemCount } = useCart()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -93,17 +92,8 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
-          {/* Cart */}
-          <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative rounded-full" aria-label="Shopping cart">
-              <ShoppingCart className="h-5 w-5" />
-              {getItemCount() > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
-                  {getItemCount()}
-                </span>
-              )}
-            </Button>
-          </Link>
+          {/* Cart Popup */}
+          <CartPopup />
 
           {/* User Menu */}
           {isAuthenticated ? (

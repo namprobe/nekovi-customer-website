@@ -6,7 +6,7 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { Button } from '@/src/components/ui/button';
-import { useCart } from '@/src/core/providers/cart-provider';
+import { useCartStore } from '@/src/entities/cart/service';
 import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
@@ -26,7 +26,7 @@ import { ProductReviewItem } from '@/src/entities/productReview/type/product-rev
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart } = useCartStore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
@@ -46,6 +46,8 @@ export default function ProductDetailPage() {
   // ---------------- Hooks ----------------
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [isEditingQuantity, setIsEditingQuantity] = useState(false);
+  const [editingQuantity, setEditingQuantity] = useState<string>("");
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
   const { data: product, loading, error } = useProductDetail(params.id as string);
@@ -233,12 +235,20 @@ export default function ProductDetailPage() {
 
 
   // ---------------- Handlers ----------------
-  const handleAddToCart = () => {
-    addToCart(mappedProduct, quantity);
-    toast({
-      title: 'Đã thêm vào giỏ hàng',
-      description: `${mappedProduct.name} x${quantity}`,
-    });
+  const handleAddToCart = async () => {
+    const result = await addToCart({ productId: mappedProduct.id, quantity });
+    if (result.success) {
+      toast({
+        title: 'Đã thêm vào giỏ hàng',
+        description: `${mappedProduct.name} x${quantity}`,
+      });
+    } else {
+      toast({
+        title: 'Lỗi',
+        description: result.error || 'Không thể thêm vào giỏ hàng',
+        variant: 'destructive',
+      });
+    }
   };
 
   // ---------------- Render ----------------
@@ -323,17 +333,95 @@ export default function ProductDetailPage() {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    onClick={() => {
+                      if (isEditingQuantity) {
+                        setIsEditingQuantity(false)
+                        setEditingQuantity("")
+                      }
+                      setQuantity((q) => Math.max(1, q - 1))
+                    }}
                     className="bg-transparent"
+                    disabled={quantity <= 1}
                   >
                     -
                   </Button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  
+                  {isEditingQuantity ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max={mappedProduct.stock}
+                        value={editingQuantity}
+                        onChange={(e) => setEditingQuantity(e.target.value)}
+                        className="w-16 h-8 text-center border rounded"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            const newQty = parseInt(editingQuantity)
+                            if (!isNaN(newQty) && newQty >= 1 && newQty <= mappedProduct.stock) {
+                              setQuantity(newQty)
+                              setIsEditingQuantity(false)
+                              setEditingQuantity("")
+                            }
+                          } else if (e.key === "Escape") {
+                            setIsEditingQuantity(false)
+                            setEditingQuantity("")
+                          }
+                        }}
+                        autoFocus
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          const newQty = parseInt(editingQuantity)
+                          if (!isNaN(newQty) && newQty >= 1 && newQty <= mappedProduct.stock) {
+                            setQuantity(newQty)
+                            setIsEditingQuantity(false)
+                            setEditingQuantity("")
+                          }
+                        }}
+                      >
+                        ✓
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={() => {
+                          setIsEditingQuantity(false)
+                          setEditingQuantity("")
+                        }}
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ) : (
+                    <span 
+                      className="w-12 text-center font-medium cursor-pointer hover:text-primary"
+                      onClick={() => {
+                        setIsEditingQuantity(true)
+                        setEditingQuantity(String(quantity))
+                      }}
+                      title="Click để nhập số lượng"
+                    >
+                      {quantity}
+                    </span>
+                  )}
+
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => setQuantity((q) => Math.min(mappedProduct.stock, q + 1))}
+                    onClick={() => {
+                      if (isEditingQuantity) {
+                        setIsEditingQuantity(false)
+                        setEditingQuantity("")
+                      }
+                      setQuantity((q) => Math.min(mappedProduct.stock, q + 1))
+                    }}
                     className="bg-transparent"
+                    disabled={quantity >= mappedProduct.stock}
                   >
                     +
                   </Button>
