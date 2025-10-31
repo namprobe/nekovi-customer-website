@@ -6,7 +6,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
-import { useCart } from "@/src/core/providers/cart-provider"
+import { useCartStore } from "@/src/entities/cart/service"
 import { useAuth } from "@/src/core/providers/auth-provider"
 import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
@@ -19,7 +19,7 @@ import { useToast } from "@/src/hooks/use-toast"
 const steps = ["Tất cả đơn", "Chờ thanh toán", "Vận chuyển", "Chờ giao hàng", "Hoàn thành"]
 
 export default function CheckoutPage() {
-  const { items, getTotalPrice, clearCart } = useCart()
+  const { cart, clearCart, fetchCart } = useCartStore()
   const { user } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
@@ -31,6 +31,13 @@ export default function CheckoutPage() {
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // ensure cart loaded (first page default)
+  useEffect(() => {
+    if (!cart) {
+      fetchCart({ page: 1, pageSize: 6 }).catch(() => {})
+    }
+  }, [cart, fetchCart])
 
   const [formData, setFormData] = useState({
     fullName: user?.username || "",
@@ -55,7 +62,7 @@ export default function CheckoutPage() {
     )
   }
 
-  if (items.length === 0) {
+  if ((cart?.cartItems?.length || 0) === 0) {
     router.push("/cart")
     return null
   }
@@ -69,7 +76,7 @@ export default function CheckoutPage() {
       description: "Cảm ơn bạn đã mua hàng tại NekoVi!",
     })
 
-    clearCart()
+    await clearCart()
     router.push("/orders")
   }
 
@@ -170,21 +177,21 @@ export default function CheckoutPage() {
             <div className="lg:col-span-1">
               <div className="sticky top-4 space-y-6 rounded-lg border bg-card p-6">
                 <div className="space-y-4">
-                  {items.map((item) => (
-                    <div key={item.product.id} className="flex gap-3">
+                  {cart!.cartItems.map((item) => (
+                    <div key={item.id} className="flex gap-3">
                       <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
-                        <Image
-                          src={item.product.images[0]?.url || "/placeholder.svg"}
-                          alt={item.product.name}
+                          <Image
+                            src={item.imagePath || "/placeholder.svg"}
+                            alt={item.name}
                           fill
                           className="object-cover"
                         />
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{item.product.name}</p>
-                        <p className="text-sm text-muted-foreground">Số lượng : {item.quantity}</p>
+                        <p className="text-sm font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">Số lượng: {item.quantity}</p>
                       </div>
-                      <span className="text-sm font-medium">{formatCurrency(item.product.price)}</span>
+                      <span className="text-sm font-medium">{formatCurrency(item.price)}</span>
                     </div>
                   ))}
                 </div>
@@ -192,7 +199,7 @@ export default function CheckoutPage() {
                 <div className="space-y-3 border-t pt-4">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tổng đơn hàng</span>
-                    <span className="font-medium">{formatCurrency(getTotalPrice())}</span>
+                    <span className="font-medium">{formatCurrency(cart?.totalPrice || 0)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping:</span>
@@ -206,7 +213,7 @@ export default function CheckoutPage() {
 
                 <div className="flex justify-between border-t pt-4 text-lg font-bold">
                   <span>Tổng:</span>
-                  <span className="text-primary">{formatCurrency(getTotalPrice())}</span>
+                  <span className="text-primary">{formatCurrency(cart?.totalPrice || 0)}</span>
                 </div>
 
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">

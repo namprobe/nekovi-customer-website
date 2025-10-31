@@ -2,7 +2,7 @@
 
 import { ProductCard } from "@/src/features/product/product-card"
 import type { Product } from "@/src/shared/types"
-import { useCart } from "@/src/core/providers/cart-provider"
+import { useCartStore } from "@/src/entities/cart/service"
 import { useToast } from "@/src/hooks/use-toast"
 
 interface FeaturedProductsProps {
@@ -11,14 +11,23 @@ interface FeaturedProductsProps {
 }
 
 export function FeaturedProducts({ title, products }: FeaturedProductsProps) {
-  const { addToCart } = useCart()
+  const { addToCart } = useCartStore()
   const { toast } = useToast()
 
   const handleAddToCart = (product: Product) => {
-    addToCart(product, 1)
-    toast({
-      title: "Đã thêm vào giỏ hàng",
-      description: `${product.name} đã được thêm vào giỏ hàng`,
+    addToCart({ productId: product.id, quantity: 1 }).then((result) => {
+      if (result.success) {
+        toast({
+          title: "Đã thêm vào giỏ hàng",
+          description: `${product.name} đã được thêm vào giỏ hàng`,
+        })
+      } else {
+        toast({
+          title: "Lỗi",
+          description: result.error || "Không thể thêm vào giỏ hàng",
+          variant: "destructive",
+        })
+      }
     })
   }
 

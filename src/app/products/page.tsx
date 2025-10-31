@@ -11,16 +11,21 @@ import { Button } from '@/src/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import { Input } from '@/src/components/ui/input';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Pagination } from '@/src/components/ui/pagination';
 import { useDebounce } from 'use-debounce';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AsyncSelect } from '@/src/shared/ui/selects/async-select';
 import { useCategorySelectStore } from '@/src/entities/categories/services/category-select-service';
 import type { Product } from '@/src/shared/types';
 import ProductCardSkeleton from '@/src/features/product/product-card-skeleton';
+import { useCartStore } from '@/src/entities/cart/service';
+import { useToast } from '@/src/hooks/use-toast';
 
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { addToCart } = useCartStore();
+  const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedSearch] = useDebounce(searchQuery, 500);
@@ -36,6 +41,29 @@ export default function ProductsPage() {
 
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
     useCategorySelectStore();
+
+  const handleAddToCart = async (product: Product) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({
+        title: "Đã thêm vào giỏ hàng",
+        description: `${product.name} đã được thêm vào giỏ hàng`,
+      });
+    } else {
+      toast({
+        title: "Lỗi",
+        description: result.error || "Không thể thêm vào giỏ hàng",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddToWishlist = (product: Product) => {
+    toast({
+      title: "Đã thêm vào yêu thích",
+      description: `${product.name} đã được thêm vào danh sách yêu thích`,
+    });
+  };
 
   // Đồng bộ khi currentPage thay đổi từ nút prev/next hoặc nút số trang
   useEffect(() => {
@@ -120,9 +148,11 @@ export default function ProductsPage() {
       {/* Search & Filters */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="mb-4 text-3xl font-bold">
-            Kết quả tìm kiếm cho '{animeTitle || debouncedSearch || 'sản phẩm'}'
-          </h1>
+          {(animeTitle || debouncedSearch) && (
+            <h1 className="mb-4 text-3xl font-bold">
+              Kết quả tìm kiếm cho '{animeTitle || debouncedSearch}'
+            </h1>
+          )}
           <div className="relative">
             <Input type="text" placeholder="Tìm kiếm sản phẩm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-10" />
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -140,7 +170,6 @@ export default function ProductsPage() {
               setAnimeTitle('');
               setCurrentPage(1);
             }}
-            className="bg-transparent"
           >
             Sắp xếp lại
           </Button>
@@ -179,38 +208,13 @@ export default function ProductsPage() {
           />
           {categoriesError && <p className="text-sm text-red-600">{categoriesError}</p>}
 
-          {/* Input trang */}
-          <div className="ml-auto flex items-center gap-2">
-            <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span>Trang</span>
-            <input
-              type="number"
-              min={1}
-              max={totalPages}
-              value={inputPage}
-              onChange={(e) => setInputPage(e.target.value === '' ? '' : Number(e.target.value))}
-              onBlur={() => {
-                let val = typeof inputPage === 'number' ? inputPage : NaN;
-                if (!val || val < 1) val = 1;
-                if (val > totalPages) val = totalPages;
-                setCurrentPage(val);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  let val = typeof inputPage === 'number' ? inputPage : NaN;
-                  if (!val || val < 1) val = 1;
-                  if (val > totalPages) val = totalPages;
-                  setCurrentPage(val);
-                }
-              }}
-              className="w-12 text-center border rounded"
+          {/* Pagination in filter */}
+          <div className="ml-auto">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
             />
-            <span>/ {totalPages}</span>
-            <Button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
@@ -218,42 +222,23 @@ export default function ProductsPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading && Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
           {error && <p className="text-red-500">{error}</p>}
-          {products.map((product) => <ProductCard key={product.id} product={product} />)}
+          {products.map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product} 
+              onAddToCart={handleAddToCart}
+              onAddToWishlist={handleAddToWishlist}
+            />
+          ))}
         </div>
 
         {/* Paging dưới */}
-        <div className="flex justify-center items-center gap-2 mt-8">
-          <Button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span>Trang</span>
-          <input
-            type="number"
-            min={1}
-            max={totalPages}
-            value={inputPage}
-            onChange={(e) => setInputPage(e.target.value === '' ? '' : Number(e.target.value))}
-            onBlur={() => {
-              let val = typeof inputPage === 'number' ? inputPage : NaN;
-              if (!val || val < 1) val = 1;
-              if (val > totalPages) val = totalPages;
-              setCurrentPage(val);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                let val = typeof inputPage === 'number' ? inputPage : NaN;
-                if (!val || val < 1) val = 1;
-                if (val > totalPages) val = totalPages;
-                setCurrentPage(val);
-              }
-            }}
-            className="w-12 text-center border rounded"
-          />
-          <span>/ {totalPages}</span>
-          <Button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          className="mt-8"
+        />
       </div>
     </MainLayout>
   );

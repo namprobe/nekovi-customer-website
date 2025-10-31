@@ -41,6 +41,7 @@ import {
 import { Badge } from "@/src/components/ui/badge"
 import { Card, CardContent } from "@/src/components/ui/card"
 import { MapPin, Phone, Pencil, Trash2, Plus, Loader2 } from "lucide-react"
+import { Pagination } from "@/src/components/ui/pagination"
 
 export function UserAddressManager() {
   const { toast } = useToast()
@@ -53,6 +54,7 @@ export function UserAddressManager() {
     updateAddress, 
     deleteAddress 
   } = useUserAddressStore()
+  const { totalItems, pageSize: storePageSize } = useUserAddressStore()
 
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -72,9 +74,12 @@ export function UserAddressManager() {
     status: EntityStatusEnum.Active,
   })
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const pageSize = storePageSize || 6
+
   useEffect(() => {
-    fetchAddresses({ isCurrentUser: true })
-  }, [fetchAddresses])
+    fetchAddresses({ isCurrentUser: true, page: currentPage, pageSize })
+  }, [fetchAddresses, currentPage])
 
   const resetForm = () => {
     setFormData({
@@ -244,6 +249,7 @@ export function UserAddressManager() {
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2">
           {addresses.map((address) => (
             <Card key={address.id} className="relative">
@@ -295,6 +301,15 @@ export function UserAddressManager() {
             </Card>
           ))}
         </div>
+        {/* Pagination */}
+        <div className="flex justify-center mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.max(1, Math.ceil((totalItems || addresses.length) / pageSize))}
+            onPageChange={(p) => setCurrentPage(p)}
+          />
+        </div>
+        </>
       )}
 
       {/* Add/Edit Dialog */}

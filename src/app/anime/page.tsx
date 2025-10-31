@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
+import { Pagination } from '@/src/components/ui/pagination';
 import { Button } from '@/src/components/ui/button';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { AnimeCard } from '@/src/features/anime/components/AnimeCard';
@@ -171,44 +172,12 @@ export default function AnimePage() {
             </div>
 
             {/* Paging */}
-            <div className="flex justify-center items-center gap-2 mt-8">
-              <Button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span>Trang</span>
-              <input
-                type="number"
-                min={1}
-                max={totalPages}
-                value={inputPage}
-                onChange={e => setInputPage(e.target.value === '' ? '' : Number(e.target.value))}
-                onBlur={() => {
-                  let val = typeof inputPage === 'number' ? inputPage : NaN;
-                  if (!val || val < 1) val = 1;
-                  if (val > totalPages) val = totalPages;
-                  setCurrentPage(val);
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    let val = typeof inputPage === 'number' ? inputPage : NaN;
-                    if (!val || val < 1) val = 1;
-                    if (val > totalPages) val = totalPages;
-                    setCurrentPage(val);
-                  }
-                }}
-                className="w-12 text-center border rounded"
-              />
-              <span>/ {totalPages}</span>
-              <Button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              className="mt-8"
+            />
           </section>
         )}
 
