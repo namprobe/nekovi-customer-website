@@ -68,6 +68,7 @@ class ApiClient {
     // header is a hashmap of key-value pairs record
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true", // Skip ngrok browser warning
     }
 
     if (this.token) {
