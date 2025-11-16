@@ -1,3 +1,4 @@
+//src/app/blog/[slug]/page.tsx
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { Card } from "@/src/components/ui/card"
 import { Button } from "@/src/components/ui/button"
