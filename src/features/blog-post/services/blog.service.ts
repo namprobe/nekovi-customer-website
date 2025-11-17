@@ -19,23 +19,42 @@ export interface BlogFilterParams {
 export const blogService = {
     // Lấy danh sách bài viết (phân trang)
     getList: async (params: BlogFilterParams = {}): Promise<PaginationResult<BlogPostItem>> => {
-        const searchParams = new URLSearchParams()
+        const endpoint = env.ENDPOINTS.BLOG.LIST
 
-        if (params.page) searchParams.append("page", params.page.toString())
-        if (params.pageSize) searchParams.append("pageSize", params.pageSize.toString())
-        if (params.search) searchParams.append("search", params.search)
-        if (params.title) searchParams.append("title", params.title)
-        if (params.postCategoryId) searchParams.append("postCategoryId", params.postCategoryId)
-        if (params.authorId) searchParams.append("authorId", params.authorId)
-        if (params.isPublished !== undefined) searchParams.append("isPublished", params.isPublished.toString())
-        if (params.tagIds?.length) {
-            params.tagIds.forEach(id => searchParams.append("tagIds", id))
+        // Tách riêng tagIds vì nó là mảng
+        const { tagIds, ...otherParams } = params
+
+        // Tạo query params cơ bản
+        const queryParams: Record<string, string | number | boolean | undefined> = {
+            page: otherParams.page,
+            pageSize: otherParams.pageSize,
+            search: otherParams.search,
+            title: otherParams.title,
+            postCategoryId: otherParams.postCategoryId,
+            authorId: otherParams.authorId,
+            isPublished: otherParams.isPublished,
+            sortBy: otherParams.sortBy,
+            isAscending: otherParams.isAscending,
         }
-        if (params.sortBy) searchParams.append("sortBy", params.sortBy)
-        if (params.isAscending !== undefined) searchParams.append("isAscending", params.isAscending.toString())
 
-        const endpoint = `${env.ENDPOINTS.BLOG.LIST}${searchParams.toString() ? `?${searchParams}` : ''}`
-        return await apiClient.paginate<BlogPostItem>(endpoint)
+        // Build URL với query params + xử lý tagIds riêng
+        const searchParams = new URLSearchParams()
+        Object.entries(queryParams).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                searchParams.append(key, value.toString())
+            }
+        })
+
+        // Xử lý tagIds: thêm nhiều lần
+        if (tagIds?.length) {
+            tagIds.forEach(id => searchParams.append("tagIds", id))
+        }
+
+        const finalEndpoint = searchParams.toString()
+            ? `${endpoint}?${searchParams.toString()}`
+            : endpoint
+
+        return await apiClient.paginate<BlogPostItem>(finalEndpoint)
     },
 
     // Lấy bài viết mới nhất theo category

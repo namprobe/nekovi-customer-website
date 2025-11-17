@@ -48,3 +48,9 @@ export interface PaginationResult<T> {
     errors?: string[]
     errorCode?: string
 }
+
+// src/features/blog-post/types/blog.ts
+export interface PostCategorySelectItem {
+    id: string;
+    name: string;
+}

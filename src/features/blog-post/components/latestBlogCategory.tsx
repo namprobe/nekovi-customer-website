@@ -5,80 +5,31 @@ import { useState, useEffect, useRef } from "react"
 import { motion, PanInfo } from "framer-motion"
 import Link from "next/link"
 import { BlogPostItem } from "@/src/features/blog-post/types/blog"
+import { Button } from "@/src/components/ui/button"
+import { Badge } from "@/src/components/ui/badge"
+import { Calendar, User, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface LatestBlogCategoryProps {
     posts: BlogPostItem[]
 }
 
-const SparklesIcon = ({ className }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="M9.93 2.25 12 7.5l2.07-5.25a.5.5 0 0 1 .9 0L17.25 8.5l4.16.34a.5.5 0 0 1 .29.88l-3.2 3.1.95 4.5a.5.5 0 0 1-.73.53L12 14.5l-3.72 2.33a.5.5 0 0 1-.73-.53l.95-4.5-3.2-3.1a.5.5 0 0 1 .29-.88l4.16-.34Z" />
-    </svg>
-)
-
-const ChevronLeftIcon = ({ className }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="m15 18-6-6 6-6" />
-    </svg>
-)
-
-const ChevronRightIcon = ({ className }: { className?: string }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="m9 18 6-6-6-6" />
-    </svg>
-)
-
-const Badge = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-    <div className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium ${className}`}>
-        {children}
-    </div>
-)
+const truncateContent = (html: string, maxLength = 150) => {
+    const text = html.replace(/<[^>]*>/g, "").trim()
+    return text.length > maxLength ? text.slice(0, maxLength) + "..." : text
+}
 
 export default function LatestBlogCategory({ posts }: LatestBlogCategoryProps) {
-    const [activeIndex, setActiveIndex] = useState(Math.floor(posts.length / 2))
+    const [activeIndex, setActiveIndex] = useState(0)
     const [isPaused, setIsPaused] = useState(false)
     const autoplayIntervalRef = useRef<NodeJS.Timeout | null>(null)
-    const autoplayDelay = 3000
+    const autoplayDelay = 4000
 
     const goToNext = () => {
         setActiveIndex((prev) => (prev + 1) % posts.length)
     }
 
     useEffect(() => {
-        if (!isPaused && posts.length > 0) {
+        if (!isPaused && posts.length > 1) {
             autoplayIntervalRef.current = setInterval(goToNext, autoplayDelay)
         }
         return () => {
@@ -90,145 +41,177 @@ export default function LatestBlogCategory({ posts }: LatestBlogCategoryProps) {
         const safeIndex = ((newIndex % posts.length) + posts.length) % posts.length
         setActiveIndex(safeIndex)
         if (autoplayIntervalRef.current) clearInterval(autoplayIntervalRef.current)
-        if (!isPaused) {
+        if (!isPaused && posts.length > 1) {
             autoplayIntervalRef.current = setInterval(goToNext, autoplayDelay)
         }
     }
 
     const onDragEnd = (_: any, info: PanInfo) => {
-        const threshold = 75
+        const threshold = 100
         if (info.offset.x > threshold) changeSlide(activeIndex - 1)
         else if (info.offset.x < -threshold) changeSlide(activeIndex + 1)
     }
 
-    if (posts.length === 0) return null
+    if (!posts || posts.length === 0) return null
 
     return (
-        <section className="w-full flex-col items-center justify-center font-sans overflow-hidden">
+        <section className="w-full py-8 md:py-12 overflow-hidden">
             <div
-                className="w-full max-w-5xl mx-auto p-4"
+                className="w-full max-w-7xl mx-auto px-4"
                 onMouseEnter={() => setIsPaused(true)}
                 onMouseLeave={() => setIsPaused(false)}
             >
-                <div className="relative flex w-full flex-col rounded-3xl border border-white/10 dark:border-white/10 bg-white dark:bg-neutral-900 p-4 pt-6 md:p-6">
-                    <Badge className="absolute left-4 top-6 rounded-xl border border-gray-300 dark:border-white/10 text-base text-gray-700 dark:text-white/80 bg-gray-100/80 dark:bg-black/20 backdrop-blur-sm md:left-6">
-                        <SparklesIcon className="fill-[#EEBDE0] stroke-1 text-neutral-800 h-5 w-5 mr-1" />
-                        Các bài viết nổi bật
+                {/* Badge tiêu đề */}
+                <div className="mb-6 md:mb-8">
+                    <Badge className="inline-flex items-center gap-2 px-4 py-2 text-lg font-semibold bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0">
+                        <SparklesIcon className="w-5 h-5" />
+                        Các bài viết nổi bật
                     </Badge>
+                </div>
 
-                    <div className="relative w-full h-[280px] md:h-[400px] flex items-center justify-center overflow-hidden pt-12">
+                {/* Carousel Container */}
+                <div className="relative">
+                    <div className="overflow-hidden rounded-3xl">
                         <motion.div
-                            className="w-full h-full flex items-center justify-center"
+                            className="flex"
                             drag="x"
-                            dragConstraints={{ left: 0, right: 0 }}
+                            dragConstraints={{ left: -100, right: 100 }}
                             dragElastic={0.2}
                             onDragEnd={onDragEnd}
+                            style={{ x: `${-activeIndex * 100}%` }}
+                            animate={{ x: `${-activeIndex * 100}%` }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
                         >
                             {posts.map((post, index) => (
-                                <BlogCard
+                                <div
                                     key={post.id}
-                                    post={post}
-                                    index={index}
-                                    activeIndex={activeIndex}
-                                    totalCards={posts.length}
-                                />
+                                    className="w-full flex-shrink-0 px-2"
+                                    style={{ width: "100%" }}
+                                >
+                                    <BlogHighlightCard post={post} />
+                                </div>
                             ))}
                         </motion.div>
                     </div>
 
-                    <div className="flex items-center justify-center gap-6 mt-6">
-                        <button
-                            onClick={() => changeSlide(activeIndex - 1)}
-                            className="p-2 rounded-full bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        >
-                            <ChevronLeftIcon className="w-6 h-6" />
-                        </button>
+                    {/* Nút điều hướng */}
+                    {posts.length > 1 && (
+                        <>
+                            <button
+                                onClick={() => changeSlide(activeIndex - 1)}
+                                className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-neutral-900/90 shadow-lg hover:bg-white dark:hover:bg-neutral-800 transition-all backdrop-blur-sm border border-gray-200 dark:border-white/20"
+                                aria-label="Previous"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-white" />
+                            </button>
+                            <button
+                                onClick={() => changeSlide(activeIndex + 1)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/90 dark:bg-neutral-900/90 shadow-lg hover:bg-white dark:hover:bg-neutral-800 transition-all backdrop-blur-sm border border-gray-200 dark:border-white/20"
+                                aria-label="Next"
+                            >
+                                <ChevronRight className="w-5 h-5 text-gray-700 dark:text-white" />
+                            </button>
+                        </>
+                    )}
 
-                        <div className="flex items-center justify-center gap-2">
+                    {/* Dots */}
+                    {posts.length > 1 && (
+                        <div className="flex justify-center gap-2 mt-6">
                             {posts.map((_, i) => (
                                 <button
                                     key={i}
                                     onClick={() => changeSlide(i)}
-                                    className={`h-2 rounded-full transition-all duration-300 focus:outline-none ${activeIndex === i
-                                        ? "w-6 bg-pink-400"
-                                        : "w-2 bg-gray-300 dark:bg-neutral-600 hover:bg-gray-400 dark:hover:bg-neutral-500"
+                                    className={`h-2 rounded-full transition-all duration-300 ${i === activeIndex
+                                        ? "w-8 bg-pink-500"
+                                        : "w-2 bg-gray-300 dark:bg-neutral-600 hover:bg-gray-400"
                                         }`}
-                                    aria-label={`Go to slide ${i + 1}`}
                                 />
                             ))}
                         </div>
-
-                        <button
-                            onClick={() => changeSlide(activeIndex + 1)}
-                            className="p-2 rounded-full bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 border border-gray-300 dark:border-white/10 text-gray-700 dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-pink-500"
-                        >
-                            <ChevronRightIcon className="w-6 h-6" />
-                        </button>
-                    </div>
+                    )}
                 </div>
             </div>
         </section>
     )
 }
 
-function BlogCard({
-    post,
-    index,
-    activeIndex,
-    totalCards,
-}: {
-    post: BlogPostItem
-    index: number
-    activeIndex: number
-    totalCards: number
-}) {
-    let offset = index - activeIndex
-    if (offset > totalCards / 2) offset -= totalCards
-    else if (offset < -totalCards / 2) offset += totalCards
-
-    const isVisible = Math.abs(offset) <= 1
-    const animate = {
-        x: `${offset * 50}%`,
-        scale: offset === 0 ? 1 : 0.8,
-        zIndex: totalCards - Math.abs(offset),
-        opacity: isVisible ? 1 : 0,
-        transition: { type: "spring" as const, stiffness: 260, damping: 30 },
-    }
-
+function BlogHighlightCard({ post }: { post: BlogPostItem }) {
     return (
-        <motion.div
-            className="absolute w-1/2 md:w-1/3 h-[95%]"
-            animate={animate}
-            initial={false}
-        >
-            <Link href={`/blog/${post.id}`} className="block h-full">
-                <div className="relative w-full h-full rounded-3xl shadow-2xl overflow-hidden bg-gray-200 dark:bg-neutral-800">
-                    {post.featuredImage ? (
-                        <img
-                            src={post.featuredImage}
-                            alt={post.title}
-                            className="w-full h-full object-cover pointer-events-none"
-                            onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.onerror = null
-                                target.src = "/fallback-blog.jpg"
-                            }}
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-pink-200 to-purple-200 flex items-center justify-center p-4">
-                            <p className="text-white font-bold text-center">{post.title}</p>
+        <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-xl overflow-hidden flex flex-col h-full">
+            <div className="relative h-64 md:h-80 lg:h-96 w-full overflow-hidden">
+                {post.featuredImage ? (
+                    <img
+                        src={post.featuredImage}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                        onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.src = "/fallback-blog.jpg"
+                        }}
+                    />
+                ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center p-6">
+                        <p className="text-center font-bold text-xl text-purple-700">{post.title}</p>
+                    </div>
+                )}
+
+                {/* Badge danh mục - góc trên trái */}
+                {post.postCategory && (
+                    <Badge className="absolute top-4 left-4 bg-pink-500 text-white border-0 text-sm font-medium">
+                        {post.postCategory.name}
+                    </Badge>
+                )}
+            </div>
+
+            {/* === PHẦN THÔNG TIN DƯỚI ẢNH === */}
+            <div className="p-6 md:p-8 flex flex-col justify-between flex-1">
+                <div>
+                    {/* Tiêu đề */}
+                    <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2">
+                        {post.title}
+                    </h3>
+
+                    {/* Mô tả ngắn */}
+                    <p className="text-gray-600 dark:text-gray-300 text-base md:text-lg mb-4 line-clamp-3">
+                        {truncateContent(post.content)}
+                    </p>
+
+                    {/* Tác giả + ngày */}
+                    <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-1.5">
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">{post.authorName || "NekoVi Team"}</span>
                         </div>
-                    )}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/70 to-transparent">
-                        <h4 className="text-white text-lg font-semibold line-clamp-2">
-                            {post.title}
-                        </h4>
-                        {post.postCategory && (
-                            <p className="text-pink-300 text-sm mt-1">{post.postCategory.name}</p>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4" />
+                            <span>{new Date(post.publishDate).toLocaleDateString("vi-VN")}</span>
+                        </div>
                     </div>
                 </div>
-            </Link>
-        </motion.div>
+
+                {/* === NÚT ĐỌC TIẾP - GÓC DƯỚI BÊN PHẢI === */}
+                <div className="mt-6 flex justify-end">
+                    <Link href={`/blog/${post.id}`}>
+                        <Button className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white font-semibold px-7 py-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+                            Đọc tiếp
+                        </Button>
+                    </Link>
+                </div>
+            </div>
+        </div>
     )
 }
+
+// Icon Sparkles
+const SparklesIcon = ({ className }: { className?: string }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className={className}
+    >
+        <path d="M9.93 2.25 12 7.5l2.07-5.25a.5.5 0 0 1 .9 0L17.25 8.5l4.16.34a.5.5 0 0 1 .29.88l-3.2 3.1.95 4.5a.5.5 0 0 1-.73.53L12 14.5l-3.72 2.33a.5.5 0 0 1-.73-.53l.95-4.5-3.2-3.1a.5.5 0 0 1 .29-.88l4.16-.34Z" />
+    </svg>
+)

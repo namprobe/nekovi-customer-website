@@ -9,9 +9,13 @@ export interface PostCategorySelectItem {
 
 export const postCategoryService = {
     getSelectList: async (search?: string): Promise<PostCategorySelectItem[]> => {
-        const result = await apiClient.get<{ value: PostCategorySelectItem[] }>(
-            `${env.ENDPOINTS.BLOG_CATEGORY.SELECT_LIST}${search ? `?search=${encodeURIComponent(search)}` : ''}`
-        )
-        return result.isSuccess && result.data?.value ? result.data.value : []
+        const url = `${env.ENDPOINTS.BLOG_CATEGORY.SELECT_LIST}${search ? `?search=${encodeURIComponent(search)}` : ''}`
+
+        // Gọi API và nhận mảng trực tiếp
+        const result = await apiClient.get<PostCategorySelectItem[]>(url)
+
+
+        // API trả về mảng → dùng result.data trực tiếp
+        return result.isSuccess && Array.isArray(result.data) ? result.data : []
     },
 }
