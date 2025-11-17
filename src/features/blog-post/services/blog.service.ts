@@ -1,6 +1,6 @@
 //src/features/blog-post/services/blog.service.ts
 import { apiClient } from "@/src/core/lib/api-client"
-import type { BlogPostItem, PaginationResult } from "../types/blog"
+import type { BlogPostItem, PaginationResult, BlogPostDetail } from "../types/blog"
 import { env } from "@/src/core/config/env"
 
 export interface BlogFilterParams {
@@ -69,8 +69,23 @@ export const blogService = {
     },
 
     // Lấy chi tiết bài viết
-    getById: async (id: string): Promise<BlogPostItem | null> => {
-        const result = await apiClient.get<{ value: BlogPostItem }>(env.ENDPOINTS.BLOG.DETAIL(id))
-        return result.isSuccess && result.data?.value ? result.data.value : null
+    getById: async (id: string): Promise<BlogPostDetail | null> => {
+        const result = await apiClient.get<any>(env.ENDPOINTS.BLOG.DETAIL(id))
+
+        // Debug 1 lần để chắc chắn (sau này có thể xóa)
+        console.log("🔍 Raw API response:", result)
+
+        // Backend trả kiểu: { isSuccess: true, value: { ...post... } }
+        if (result.isSuccess && result.data?.value) {
+            return result.data.value as BlogPostDetail
+        }
+
+        // Một số trường hợp backend trả thẳng data mà không có .value
+        if (result.isSuccess && result.data) {
+            return result.data as BlogPostDetail
+        }
+
+        return null
     },
 }
+

@@ -21,18 +21,17 @@ const truncateContent = (html: string, maxLength = 100) => {
 }
 
 export default function BlogPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const router = useRouter()
 
-  // Đọc từ URL
-  const urlCategoryId = searchParams.get('cat') || ''
-  const urlSearch = searchParams.get('q') || ''
-  const urlPage = Number(searchParams.get('page')) || 1
+  // === CHỈ ĐỌC URL 1 LẦN KHI MOUNT (giống hệt trang products) ===
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
+  const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get('cat') || '')
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = searchParams.get('page')
+    return page ? Math.max(1, Number(page)) : 1
+  })
 
-  // State
-  const [searchQuery, setSearchQuery] = useState(urlSearch)
-  const [selectedCategoryId, setSelectedCategoryId] = useState(urlCategoryId)
-  const [currentPage, setCurrentPage] = useState(urlPage)
   const [debouncedSearch] = useDebounce(searchQuery, 500)
 
   const [latestPosts, setLatestPosts] = useState<BlogPostItem[]>([])
@@ -41,23 +40,12 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true)
 
   const pageSize = 9
-  const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" })
-  }
-
-  // Load categories từ API
+  // Load categories
   useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const cats = await postCategoryService.getSelectList()
-        setCategories([{ id: '', name: 'Tất cả' }, ...cats])
-      } catch (err) {
-        console.error("Failed to load categories:", err)
-      }
-    }
-    loadCategories()
+    postCategoryService.getSelectList().then(cats => {
+      setCategories([{ id: '', name: 'Tất cả' }, ...cats])
+    }).catch(console.error)
   }, [])
 
   // Load blog data
@@ -75,49 +63,56 @@ export default function BlogPage() {
             isPublished: true,
           }),
         ])
-
         setLatestPosts(latest)
         setBlogData(list)
       } catch (err) {
-        console.error("Failed to load blog data:", err)
+        console.error(err)
       } finally {
         setLoading(false)
       }
     }
-
     loadData()
   }, [currentPage, debouncedSearch, selectedCategoryId])
 
-  // Sync URL
+  // Lưu URL hiện tại vào sessionStorage mỗi khi URL thay đổi
+  useEffect(() => {
+    const currentUrl = window.location.pathname + window.location.search
+    sessionStorage.setItem("blog_prev_url", currentUrl)
+  }, [searchParams]) // searchParams thay đổi = URL thay đổi
+
+  // === ĐẨY STATE LÊN URL – CHỈ 1 EFFECT DUY NHẤT (fix bug reset) ===
   useEffect(() => {
     const params = new URLSearchParams()
     if (searchQuery) params.set('q', searchQuery)
     if (selectedCategoryId) params.set('cat', selectedCategoryId)
     if (currentPage > 1) params.set('page', String(currentPage))
 
-    router.replace(`/blog?${params.toString()}`, { scroll: false })
+    const newUrl = `/blog${params.toString() ? `?${params.toString()}` : ''}`
+
+    // Dùng push để giữ history → back sẽ đúng trang
+    router.push(newUrl, { scroll: false })
   }, [searchQuery, selectedCategoryId, currentPage, router])
 
-  // Reset page khi search hoặc category thay đổi
   useEffect(() => {
-    setCurrentPage(1)
-  }, [debouncedSearch, selectedCategoryId])
+    // Chỉ reset trang 1 khi search HOẶC category THAY ĐỔI SO VỚI GIÁ TRỊ HIỆN TẠI TRONG URL
+    const urlSearch = searchParams.get('q')?.trim() || ''
+    const urlCat = searchParams.get('cat') || ''
 
-  // Giữ focus input khi scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (searchInputRef.current && document.activeElement === searchInputRef.current && searchQuery) {
-        requestAnimationFrame(() => {
-          searchInputRef.current?.focus()
-          searchInputRef.current!.selectionStart = searchInputRef.current!.selectionEnd = searchQuery.length
-        })
-      }
+    const currentSearch = (debouncedSearch || '').trim()
+    const shouldResetPage =
+      currentSearch !== urlSearch || selectedCategoryId !== urlCat
+
+    if (shouldResetPage && currentPage !== 1) {
+      setCurrentPage(1)
     }
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
-  }, [searchQuery])
+  }, [debouncedSearch, selectedCategoryId, searchParams, currentPage])
 
-  // Hiển thị items từ API (không filter client)
+
+  // Scroll lên đầu khi đổi trang
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [currentPage])
+
   const items = blogData?.items || []
 
   if (loading && !blogData) {
@@ -133,7 +128,7 @@ export default function BlogPage() {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        {/* HEADER */}
+        {/* HEADER + NỔI BẬT (giữ nguyên) */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-primary">Bảng Tin NekoVi</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -145,7 +140,6 @@ export default function BlogPage() {
           <div className="h-px bg-gradient-to-r from-transparent via-pink-300 to-transparent opacity-50" />
         </div>
 
-        {/* NỔI BẬT */}
         {latestPosts.length > 0 && (
           <div className="mb-16">
             <LatestBlogCategory posts={latestPosts} />
@@ -162,26 +156,22 @@ export default function BlogPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="relative flex-1 max-w-md">
               <Input
-                ref={searchInputRef}
                 type="text"
                 placeholder="Tìm kiếm bài viết..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 text-base transition-all focus:ring-2 focus:ring-pink-500"
-                autoComplete="off"
+                className="pl-10 pr-4 py-2 text-base"
               />
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
 
-            {/* Category Buttons */}
             <div className="flex flex-wrap gap-2 justify-center md:justify-end">
               {categories.map((cat) => (
                 <Button
                   key={cat.id}
                   variant={selectedCategoryId === cat.id ? "default" : "outline"}
-                  onClick={() => setSelectedCategoryId(cat.id)}
+                  onClick={() => setSelectedCategoryId(cat.id === '' ? '' : cat.id)}
                   size="sm"
-                  className="transition-all"
                 >
                   {cat.name}
                 </Button>
@@ -203,15 +193,12 @@ export default function BlogPage() {
                       alt={post.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.src = "/fallback-blog.jpg"
-                      }}
                     />
                   ) : (
                     <div className="bg-gray-200 border-2 border-dashed rounded-xl w-full h-full" />
                   )}
                   {post.postCategory && (
-                    <Badge className="absolute left-4 top-4 bg-pink-500 text-white border-0 text-xs font-medium">
+                    <Badge className="absolute left-4 top-4 bg-pink-500 text-white text-xs font-medium">
                       {post.postCategory.name}
                     </Badge>
                   )}
@@ -231,8 +218,13 @@ export default function BlogPage() {
                       {new Date(post.publishDate).toLocaleDateString("vi-VN")}
                     </div>
                   </div>
-                  <Link href={`/blog/${post.id}`}>
-                    <Button variant="outline" className="w-full hover:bg-pink-500 dark:hover:bg-pink-900/20">
+
+                  {/* LINK ĐÚNG – GIỮ NGUYÊN QUERY */}
+                  <Link
+                    href={`/blog/${post.id}${searchParams.toString() ? '?' + searchParams.toString() : ''}`}
+                    className="block"
+                  >
+                    <Button variant="outline" className="w-full hover:bg-pink-500 hover:text-white">
                       Đọc tiếp
                     </Button>
                   </Link>
@@ -247,10 +239,7 @@ export default function BlogPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setCurrentPage(Math.max(1, currentPage - 1))
-                  scrollToTop()
-                }}
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
                 Trước
@@ -261,10 +250,7 @@ export default function BlogPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  setCurrentPage(currentPage + 1)
-                  scrollToTop()
-                }}
+                onClick={() => setCurrentPage(p => p + 1)}
                 disabled={currentPage === blogData.totalPages}
               >
                 Sau
@@ -273,7 +259,6 @@ export default function BlogPage() {
           )}
         </div>
 
-        {/* No results */}
         {items.length === 0 && !loading && (
           <div className="text-center py-16">
             <p className="text-lg text-muted-foreground">Không tìm thấy bài viết nào phù hợp</p>

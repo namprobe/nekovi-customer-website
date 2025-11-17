@@ -123,8 +123,8 @@ export default function ProductsPage() {
       stock: item.stockQuantity,
       isPreOrder: item.isPreOrder || false,
       tags: [],
-      rating: 0,
-      reviewCount: 0,
+      rating: item.averageRating,
+      reviewCount: item.reviewCount,
       createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
     })) || [];
 
@@ -223,9 +223,9 @@ export default function ProductsPage() {
           {loading && Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
           {error && <p className="text-red-500">{error}</p>}
           {products.map((product) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
+            <ProductCard
+              key={product.id}
+              product={product}
               onAddToCart={handleAddToCart}
               onAddToWishlist={handleAddToWishlist}
             />

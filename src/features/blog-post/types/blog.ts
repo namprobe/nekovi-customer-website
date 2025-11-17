@@ -1,3 +1,5 @@
+import { ProductItem } from "@/src/entities/product/type/product"
+
 //src/features/blog-post/types/blog.ts
 export interface PostCategoryItem {
     id: string
@@ -53,4 +55,9 @@ export interface PaginationResult<T> {
 export interface PostCategorySelectItem {
     id: string;
     name: string;
+}
+
+// src/features/blog-post/types/blog.ts
+export interface BlogPostDetail extends BlogPostItem {
+    products?: ProductItem[]
 }

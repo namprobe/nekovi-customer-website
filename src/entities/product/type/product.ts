@@ -58,6 +58,7 @@ export interface ProductItem extends BaseEntity {
     events?: EventItem[];
     totalSales?: number;
     averageRating?: number;
+    reviewCount?: number;
 }
 
 export interface ProductQuery {

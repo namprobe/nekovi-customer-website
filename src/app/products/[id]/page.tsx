@@ -345,7 +345,7 @@ export default function ProductDetailPage() {
                   >
                     -
                   </Button>
-                  
+
                   {isEditingQuantity ? (
                     <div className="flex items-center gap-1">
                       <input
@@ -398,7 +398,7 @@ export default function ProductDetailPage() {
                       </Button>
                     </div>
                   ) : (
-                    <span 
+                    <span
                       className="w-12 text-center font-medium cursor-pointer hover:text-primary"
                       onClick={() => {
                         setIsEditingQuantity(true)
