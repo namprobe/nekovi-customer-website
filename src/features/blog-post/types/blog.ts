@@ -1,6 +1,6 @@
+//src/features/blog-post/types/blog.ts
 import { ProductItem } from "@/src/entities/product/type/product"
 
-//src/features/blog-post/types/blog.ts
 export interface PostCategoryItem {
     id: string
     name: string

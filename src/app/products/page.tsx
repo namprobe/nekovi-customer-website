@@ -65,25 +65,21 @@ export default function ProductsPage() {
     });
   };
 
-  // Đồng bộ khi currentPage thay đổi từ nút prev/next hoặc nút số trang
   useEffect(() => {
     setInputPage(currentPage);
   }, [currentPage]);
 
-  // Chỉ fetch categories 1 lần khi mount
   useEffect(() => {
     if (categories.length === 0) {
       fetchCategories('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty deps - only run once on mount
+  }, []);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
 
 
-  // Đồng bộ state lên URL
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
@@ -132,7 +128,6 @@ export default function ProductsPage() {
 
   return (
     <MainLayout>
-      {/* Banner */}
       <div className="relative overflow-hidden mb-8">
         <Image src="/cuoc-thi-anh-banner.png" alt="Cuộc thi ảnh Sakura Cosplay Festival" width={1200} height={300} className="w-full h-auto object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-purple-500/20" />
@@ -145,7 +140,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Search & Filters */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           {(animeTitle || debouncedSearch) && (
@@ -208,7 +202,6 @@ export default function ProductsPage() {
           />
           {categoriesError && <p className="text-sm text-red-600">{categoriesError}</p>}
 
-          {/* Pagination in filter */}
           <div className="ml-auto">
             <Pagination
               currentPage={currentPage}
@@ -218,7 +211,6 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Products Grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {loading && Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
           {error && <p className="text-red-500">{error}</p>}
@@ -232,7 +224,6 @@ export default function ProductsPage() {
           ))}
         </div>
 
-        {/* Paging dưới */}
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

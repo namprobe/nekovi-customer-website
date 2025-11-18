@@ -17,14 +17,11 @@ export interface BlogFilterParams {
 }
 
 export const blogService = {
-    // Lấy danh sách bài viết (phân trang)
     getList: async (params: BlogFilterParams = {}): Promise<PaginationResult<BlogPostItem>> => {
         const endpoint = env.ENDPOINTS.BLOG.LIST
 
-        // Tách riêng tagIds vì nó là mảng
         const { tagIds, ...otherParams } = params
 
-        // Tạo query params cơ bản
         const queryParams: Record<string, string | number | boolean | undefined> = {
             page: otherParams.page,
             pageSize: otherParams.pageSize,
@@ -37,7 +34,6 @@ export const blogService = {
             isAscending: otherParams.isAscending,
         }
 
-        // Build URL với query params + xử lý tagIds riêng
         const searchParams = new URLSearchParams()
         Object.entries(queryParams).forEach(([key, value]) => {
             if (value !== undefined && value !== null) {
@@ -45,7 +41,6 @@ export const blogService = {
             }
         })
 
-        // Xử lý tagIds: thêm nhiều lần
         if (tagIds?.length) {
             tagIds.forEach(id => searchParams.append("tagIds", id))
         }
@@ -57,9 +52,8 @@ export const blogService = {
         return await apiClient.paginate<BlogPostItem>(finalEndpoint)
     },
 
-    // Lấy bài viết mới nhất theo category
     getLatestByCategory: async (): Promise<BlogPostItem[]> => {
-        const result = await apiClient.get<BlogPostItem[]>(  // Sửa: <BlogPostItem[]>
+        const result = await apiClient.get<BlogPostItem[]>(
             env.ENDPOINTS.BLOG.LATEST_BY_CATEGORY
         )
         if (result.isSuccess && Array.isArray(result.data)) {
@@ -68,19 +62,13 @@ export const blogService = {
         return []
     },
 
-    // Lấy chi tiết bài viết
     getById: async (id: string): Promise<BlogPostDetail | null> => {
         const result = await apiClient.get<any>(env.ENDPOINTS.BLOG.DETAIL(id))
 
-        // Debug 1 lần để chắc chắn (sau này có thể xóa)
-        console.log("🔍 Raw API response:", result)
-
-        // Backend trả kiểu: { isSuccess: true, value: { ...post... } }
         if (result.isSuccess && result.data?.value) {
             return result.data.value as BlogPostDetail
         }
 
-        // Một số trường hợp backend trả thẳng data mà không có .value
         if (result.isSuccess && result.data) {
             return result.data as BlogPostDetail
         }

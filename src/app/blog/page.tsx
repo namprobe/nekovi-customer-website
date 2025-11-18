@@ -24,7 +24,6 @@ export default function BlogPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
 
-  // === CHỈ ĐỌC URL 1 LẦN KHI MOUNT (giống hệt trang products) ===
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
   const [selectedCategoryId, setSelectedCategoryId] = useState(searchParams.get('cat') || '')
   const [currentPage, setCurrentPage] = useState(() => {
@@ -41,14 +40,12 @@ export default function BlogPage() {
 
   const pageSize = 9
 
-  // Load categories
   useEffect(() => {
     postCategoryService.getSelectList().then(cats => {
       setCategories([{ id: '', name: 'Tất cả' }, ...cats])
     }).catch(console.error)
   }, [])
 
-  // Load blog data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true)
@@ -74,13 +71,11 @@ export default function BlogPage() {
     loadData()
   }, [currentPage, debouncedSearch, selectedCategoryId])
 
-  // Lưu URL hiện tại vào sessionStorage mỗi khi URL thay đổi
   useEffect(() => {
     const currentUrl = window.location.pathname + window.location.search
     sessionStorage.setItem("blog_prev_url", currentUrl)
-  }, [searchParams]) // searchParams thay đổi = URL thay đổi
+  }, [searchParams])
 
-  // === ĐẨY STATE LÊN URL – CHỈ 1 EFFECT DUY NHẤT (fix bug reset) ===
   useEffect(() => {
     const params = new URLSearchParams()
     if (searchQuery) params.set('q', searchQuery)
@@ -89,12 +84,10 @@ export default function BlogPage() {
 
     const newUrl = `/blog${params.toString() ? `?${params.toString()}` : ''}`
 
-    // Dùng push để giữ history → back sẽ đúng trang
     router.push(newUrl, { scroll: false })
   }, [searchQuery, selectedCategoryId, currentPage, router])
 
   useEffect(() => {
-    // Chỉ reset trang 1 khi search HOẶC category THAY ĐỔI SO VỚI GIÁ TRỊ HIỆN TẠI TRONG URL
     const urlSearch = searchParams.get('q')?.trim() || ''
     const urlCat = searchParams.get('cat') || ''
 
@@ -108,7 +101,6 @@ export default function BlogPage() {
   }, [debouncedSearch, selectedCategoryId, searchParams, currentPage])
 
 
-  // Scroll lên đầu khi đổi trang
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [currentPage])
@@ -128,7 +120,6 @@ export default function BlogPage() {
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
-        {/* HEADER + NỔI BẬT (giữ nguyên) */}
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-4xl md:text-5xl font-bold text-primary">Bảng Tin NekoVi</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
@@ -150,7 +141,6 @@ export default function BlogPage() {
           <div className="h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent opacity-50" />
         </div>
 
-        {/* SEARCH & FILTER */}
         <div className="mb-12 space-y-6">
           <h2 className="text-2xl font-bold text-center md:text-left">Tìm kiếm & Lọc</h2>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -180,7 +170,6 @@ export default function BlogPage() {
           </div>
         </div>
 
-        {/* DANH SÁCH BÀI VIẾT */}
         <div className="mb-16">
           <h2 className="mb-8 text-2xl md:text-3xl font-bold text-center md:text-left">Tất cả bài viết</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -219,7 +208,6 @@ export default function BlogPage() {
                     </div>
                   </div>
 
-                  {/* LINK ĐÚNG – GIỮ NGUYÊN QUERY */}
                   <Link
                     href={`/blog/${post.id}${searchParams.toString() ? '?' + searchParams.toString() : ''}`}
                     className="block"
@@ -233,7 +221,6 @@ export default function BlogPage() {
             ))}
           </div>
 
-          {/* Pagination */}
           {blogData && blogData.totalPages > 1 && (
             <div className="mt-12 flex justify-center gap-3">
               <Button
