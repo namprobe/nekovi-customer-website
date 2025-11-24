@@ -58,5 +58,13 @@ export const env = {
             DELETE_ITEM: (cartItemId: string) => `/cart/${cartItemId}`,
             CLEAR: `/cart/clear`,
         },
+        BLOG: {
+            LIST: `/blog-posts`,
+            LATEST_BY_CATEGORY: `/blog-posts/latest-by-category`,
+            DETAIL: (id: string) => `/blog-posts/${id}`,
+        },
+        BLOG_CATEGORY: {
+            SELECT_LIST: `/post-categorys/select-list`,
+        }
     },
 } as const;

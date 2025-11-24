@@ -51,13 +51,13 @@ export interface ProductItem extends BaseEntity {
     animeSeriesId?: string;
     animeSeries?: { id: string; title: string; releaseYear?: number; imagePath?: string };
     primaryImage?: string;
-    // Các trường chỉ có trong GetProduct
     images?: ProductImage[];
     productTags?: ProductTag[];
     reviews?: ProductReview[];
     events?: EventItem[];
     totalSales?: number;
     averageRating?: number;
+    reviewCount?: number;
 }
 
 export interface ProductQuery {
