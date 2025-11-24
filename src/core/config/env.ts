@@ -38,6 +38,7 @@ export const env = {
             DETAIL: (id: string) => `/products/${id}`,
         },
         CATEGORY: {
+            LIST: `/categories`,
             SELECT_LIST: `/categories/select-list`,
         },
         ANIME_SERIES: {

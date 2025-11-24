@@ -3,11 +3,12 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
+import type { CategorySelectItem } from '@/src/entities/categories/type/category';
 
-export interface CategorySelectItem {
-    id: string;
-    name: string;
-}
+// export interface CategorySelectItem {
+//     id: string;
+//     name: string;
+// }
 
 interface CategorySelectState {
     options: CategorySelectItem[];
