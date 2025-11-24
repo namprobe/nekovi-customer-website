@@ -45,6 +45,7 @@ export const env = {
             SELECT_LIST: `/anime-series`,
         },
         PRODUCT_REVIEW: {
+            LIST: `/product-reviews`,
             CREATE: `/product-reviews`,
             GET_BY_PRODUCT: (productId: string) => `/product-reviews/product/${productId}`,
             UPDATE: (id: string) => `/product-reviews/${id}`,

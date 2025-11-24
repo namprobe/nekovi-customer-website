@@ -18,7 +18,6 @@ export function CategoryShowcase() {
   const realIndex = currentIndex % categories.length;
 
 
-
   // Tính số item hiển thị theo width thực tế
   const getItemsPerView = useCallback(() => {
     if (!containerRef.current) return 4;
@@ -144,7 +143,7 @@ export function CategoryShowcase() {
                     width: `${100 / itemsPerView}%`,
                   }}
                 >
-                  <Link href={`/products?categoryId=${category.id}`}>
+                  <Link href={`/products?cat=${category.id}`}>
                     <Card className="group overflow-hidden rounded-xl shadow-md hover:shadow-2xl transition-all duration-300 h-full bg-white">
                       <CardContent className="p-0">
                         <div className="relative aspect-square overflow-hidden bg-muted">

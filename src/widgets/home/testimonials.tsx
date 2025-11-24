@@ -1,3 +1,4 @@
+//src/widgets/home/testimonials.tsx
 import { Card, CardContent } from "@/src/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/src/components/ui/avatar"
 import { Star } from "lucide-react"
