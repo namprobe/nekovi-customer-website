@@ -1,4 +1,4 @@
-// src/entities/product-review/service/product-review-service.ts
+//src/entities/productReview/service/product-review-service.ts
 import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
 import { ProductReviewCreateRequest, ProductReviewItem } from '../type/product-review';
