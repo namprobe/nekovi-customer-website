@@ -1,3 +1,4 @@
+//src/app/not-found.tsx
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { Button } from "@/src/components/ui/button"
 import Link from "next/link"
