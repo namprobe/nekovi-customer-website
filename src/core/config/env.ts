@@ -65,6 +65,13 @@ export const env = {
         },
         BLOG_CATEGORY: {
             SELECT_LIST: `/post-categorys/select-list`,
-        }
+        },
+        ORDER: {
+            PLACE: `/orders`,
+            LIST: `/orders`,
+        },
+        PAYMENT_METHOD: {
+            LIST: `/payment-methods`,
+        },
     },
 } as const;
