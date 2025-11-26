@@ -7,6 +7,7 @@ import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/src/core/providers/auth-provider"
+import { useCartStore } from "@/src/entities/cart/service"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -21,10 +22,13 @@ import { CartPopup } from "@/src/widgets/cart/cart-popup"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
+  const { clearCartState } = useCartStore()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   const handleLogout = async () => {
+    // Clear cart immediately before logout
+    clearCartState()
     await logout()
     router.push("/login")
   }

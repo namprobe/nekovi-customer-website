@@ -71,6 +71,7 @@ export const env = {
         ORDER: {
             PLACE: `/orders`,
             LIST: `/orders`,
+            DETAIL: (id: string) => `/orders/${id}`,
         },
         PAYMENT_METHOD: {
             LIST: `/payment-methods`,

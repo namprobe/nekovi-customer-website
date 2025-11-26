@@ -4,8 +4,8 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Loader2 } from "lucide-react"
 import { useCartStore } from "@/src/entities/cart/service"
@@ -17,19 +17,24 @@ import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group"
 import { Checkbox } from "@/src/components/ui/checkbox"
 import { formatCurrency } from "@/src/shared/utils/format"
 import { useToast } from "@/src/hooks/use-toast"
+import { Pagination } from "@/src/components/ui/pagination"
 import { orderService } from "@/src/entities/order/service"
 import { paymentMethodService } from "@/src/entities/payment-method/service"
 import type { PaymentMethodItem } from "@/src/entities/payment-method/type/payment-method"
 import { EntityStatusEnum } from "@/src/entities/user-address/type/user-address"
+import type { CartItemResponse, CartResponse } from "@/src/entities/cart/type/cart"
+import { useProductDetail } from "@/src/features/product/hooks/use-product-detail"
+import { apiClient } from "@/src/core/lib/api-client"
+import { env } from "@/src/core/config/env"
 
-const steps = ["Tất cả đơn", "Chờ thanh toán", "Vận chuyển", "Chờ giao hàng", "Hoàn thành"]
+const ITEMS_PER_PAGE = 3
 
 export function CheckoutManager() {
-  const { cart, fetchCart } = useCartStore()
+  const { cart, fetchCart, isLoading: isCartLoading } = useCartStore()
   const { user, isAuthenticated, isHydrated } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
-  const [currentStep, setCurrentStep] = useState(1)
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string>("")
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethodItem[]>([])
   const [isLoadingPaymentMethods, setIsLoadingPaymentMethods] = useState(false)
@@ -37,17 +42,102 @@ export function CheckoutManager() {
   const [couponCode, setCouponCode] = useState("")
   const [saveInfo, setSaveInfo] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  
+  // Local state for accumulated cart items
+  const [displayedItems, setDisplayedItems] = useState<CartItemResponse[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPrice, setTotalPrice] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
+  const cartFetchedRef = useRef(false)
+
+  // Detect "Buy Now" mode from query params
+  const buyNowProductId = searchParams.get("productId")
+  const buyNowQuantityParam = searchParams.get("quantity")
+  const buyNowQuantity = Math.max(1, Number(buyNowQuantityParam || "1") || 1)
+  const isBuyNow = !!buyNowProductId
+
+  // Load product detail for Buy Now mode (re-use product detail hook)
+  const {
+    data: buyNowProduct,
+    loading: isBuyNowLoading,
+  } = useProductDetail(buyNowProductId || "")
 
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  // ensure cart loaded (first page default)
+  // Fetch cart with pageSize = 3 (similar to cart popup) - only for normal cart checkout
   useEffect(() => {
-    if (isHydrated && isAuthenticated && !cart) {
-      fetchCart({ page: 1, pageSize: 6 }).catch(() => {})
+    if (isBuyNow) return
+    if (isHydrated && isAuthenticated && !cartFetchedRef.current) {
+      cartFetchedRef.current = true
+      fetchCart({ page: 1, pageSize: ITEMS_PER_PAGE }).catch(() => {})
     }
-  }, [cart, fetchCart, isHydrated, isAuthenticated])
+  }, [isHydrated, isAuthenticated, fetchCart, isBuyNow])
+
+  // Update displayed items when cart changes (cart checkout mode)
+  useEffect(() => {
+    if (!cart || isBuyNow) return
+
+    // Always replace items with current page data from backend
+    setDisplayedItems(cart.cartItems || [])
+    setTotalItems(cart.totalItems || 0)
+    setTotalPrice(cart.totalPrice || 0)
+
+    // Check if there are more items to load
+    const totalPages = Math.ceil((cart.totalItems || 0) / ITEMS_PER_PAGE)
+    setTotalPages(totalPages || 1)
+  }, [cart, currentPage, isBuyNow])
+
+  // When in Buy Now mode, build a synthetic displayedItems list from product detail (does NOT touch cart)
+  useEffect(() => {
+    if (!isBuyNow || !buyNowProduct) return
+
+    const unitPrice = buyNowProduct.discountPrice
+      ? buyNowProduct.price * (1 - buyNowProduct.discountPrice / 100)
+      : buyNowProduct.price
+
+    const imagePath =
+      buyNowProduct.primaryImage ||
+      (Array.isArray(buyNowProduct.images) && buyNowProduct.images.length > 0
+        ? buyNowProduct.images[0].imagePath
+        : "/placeholder.svg")
+
+    const nowIso = new Date().toISOString()
+
+    const syntheticItem: CartItemResponse = {
+      id: buyNowProduct.id,
+      productId: buyNowProduct.id,
+      name: buyNowProduct.name,
+      price: unitPrice,
+      discountPrice: buyNowProduct.discountPrice ?? null,
+      quantity: buyNowQuantity,
+      imagePath,
+      createdAt:
+        typeof buyNowProduct.createdAt === "string"
+          ? buyNowProduct.createdAt
+          : nowIso,
+      updatedAt:
+        typeof buyNowProduct.updatedAt === "string"
+          ? buyNowProduct.updatedAt
+          : undefined,
+      status: EntityStatusEnum.Active,
+      statusName: "Active",
+    }
+
+    setDisplayedItems([syntheticItem])
+    setTotalItems(buyNowQuantity)
+    setTotalPrice(unitPrice * buyNowQuantity)
+  }, [isBuyNow, buyNowProduct, buyNowQuantity])
+
+  // Show loading while fetching Buy Now product
+  useEffect(() => {
+    if (!isBuyNow || !isBuyNowLoading) return
+    setDisplayedItems([])
+    setTotalItems(0)
+    setTotalPrice(0)
+  }, [isBuyNow, isBuyNowLoading])
 
   // Load payment methods (chỉ lấy Active) - load cho cả user đã login và chưa login
   useEffect(() => {
@@ -104,20 +194,24 @@ export function CheckoutManager() {
     }
   }, [isAuthenticated, user])
 
-  if (!isClient) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Đang tải...</p>
-        </div>
-      </div>
-    )
-  }
+  // Redirect to cart only AFTER cart has been loaded and is confirmed empty
+  // Do this in an effect to avoid updating Router during render
+  // useEffect(() => {
+  //   if (!isClient) return
+  //   if (!isCartLoading && totalItems === 0 && displayedItems.length === 0) {
+  //     router.push("/cart")
+  //   }
+  // }, [isClient, isCartLoading, totalItems, displayedItems.length, router])
 
-  if ((cart?.cartItems?.length || 0) === 0) {
-    router.push("/cart")
-    return null
+  // Handle page change for cart items (pagination instead of "load more")
+  const handlePageChange = async (page: number) => {
+    if (page === currentPage || isBuyNow) return
+    setCurrentPage(page)
+    try {
+      await fetchCart({ page, pageSize: ITEMS_PER_PAGE })
+    } catch {
+      // error already handled inside fetchCart
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -132,7 +226,7 @@ export function CheckoutManager() {
       return
     }
 
-    if (!cart || cart.cartItems.length === 0) {
+    if (displayedItems.length === 0) {
       toast({
         title: "Lỗi",
         description: "Giỏ hàng trống",
@@ -192,8 +286,8 @@ export function CheckoutManager() {
     try {
       // Chỉ gửi guest info khi user chưa login
       const orderRequest = {
-        productId: null,
-        quantity: null,
+        productId: isBuyNow ? buyNowProductId : null,
+        quantity: isBuyNow ? buyNowQuantity : null,
         couponCode: couponCode || null,
         paymentMethodId: selectedPaymentMethodId,
         isOneClick: !isAuthenticated, // true nếu user chưa login
@@ -223,7 +317,10 @@ export function CheckoutManager() {
         })
         
         // Refresh cart to get updated state (backend đã xóa cart items)
-        await fetchCart({ page: 1, pageSize: 6 })
+        cartFetchedRef.current = false
+        setCurrentPage(1)
+        setDisplayedItems([])
+        await fetchCart({ page: 1, pageSize: ITEMS_PER_PAGE })
       } else {
         toast({
           title: "Lỗi",
@@ -242,24 +339,21 @@ export function CheckoutManager() {
     }
   }
 
+  // Show loading while fetching cart (cart checkout) or while not yet hydrated on client
+  if (!isClient || (!isBuyNow && isCartLoading && displayedItems.length === 0)) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Đang tải giỏ hàng...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       <h1 className="mb-8 text-3xl font-bold text-primary">Thanh toán</h1>
-
-      {/* Steps */}
-      <div className="mb-8 flex items-center justify-between rounded-lg border bg-card p-4">
-        {steps.map((step, index) => (
-          <button
-            key={step}
-            onClick={() => setCurrentStep(index)}
-            className={`flex-1 text-center text-sm font-medium ${
-              currentStep === index ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            {step}
-          </button>
-        ))}
-      </div>
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-8 lg:grid-cols-3">
@@ -379,7 +473,7 @@ export function CheckoutManager() {
           <div className="lg:col-span-1">
             <div className="sticky top-4 space-y-6 rounded-lg border bg-card p-6">
               <div className="space-y-4">
-                {cart!.cartItems.map((item) => (
+                {displayedItems.map((item) => (
                   <div key={item.id} className="flex gap-3">
                     <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
                       <Image
@@ -396,12 +490,23 @@ export function CheckoutManager() {
                     <span className="text-sm font-medium">{formatCurrency(item.price)}</span>
                   </div>
                 ))}
+
+                {/* Pagination for cart items (only in normal cart checkout mode) */}
+                {!isBuyNow && totalPages > 1 && (
+                  <div className="pt-2 border-t">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 border-t pt-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tổng đơn hàng</span>
-                  <span className="font-medium">{formatCurrency(cart?.totalPrice || 0)}</span>
+                  <span className="font-medium">{formatCurrency(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping:</span>
@@ -421,7 +526,7 @@ export function CheckoutManager() {
 
               <div className="flex justify-between border-t pt-4 text-lg font-bold">
                 <span>Tổng:</span>
-                <span className="text-primary">{formatCurrency(cart?.totalPrice || 0)}</span>
+                <span className="text-primary">{formatCurrency(totalPrice)}</span>
               </div>
 
               <div className="space-y-3">
@@ -439,15 +544,27 @@ export function CheckoutManager() {
                     className="space-y-3"
                   >
                     {paymentMethods.map((method) => (
-                      <div key={method.id} className="flex items-center space-x-2">
+                      <div key={method.id} className="flex items-center space-x-3 rounded-lg border p-3 hover:bg-accent/50 transition-colors">
                         <RadioGroupItem value={method.id} id={method.id} />
-                        <Label htmlFor={method.id} className="cursor-pointer">
-                          {method.name}
+                        <Label htmlFor={method.id} className="cursor-pointer flex-1 flex items-center gap-3">
+                          {method.iconPath && (
+                            <div className="relative h-8 w-8 flex-shrink-0 overflow-hidden rounded">
+                              <Image
+                                src={method.iconPath}
+                                alt={method.name}
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <span className="font-medium">{method.name}</span>
                           {method.description && (
                             <span className="ml-2 text-xs text-muted-foreground">
                               ({method.description})
                             </span>
                           )}
+                          </div>
                         </Label>
                       </div>
                     ))}
