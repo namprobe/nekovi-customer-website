@@ -216,6 +216,23 @@ export default function ProductDetailPage() {
     }
   };
 
+  // Add to cart for related products (always quantity = 1, không ảnh hưởng quantity đang chọn của sản phẩm chính)
+  const handleAddRelatedToCart = async (product: Product) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({
+        title: "Thành công",
+        description: `${product.name} đã thêm vào giỏ hàng`,
+      });
+    } else {
+      toast({
+        title: "Lỗi",
+        description: result.error || "Không thể thêm vào giỏ",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
@@ -301,10 +318,24 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex gap-4">
-              <Button onClick={handleAddToCart} disabled={mappedProduct.stock === 0} size="lg" className="flex-1">
+              <Button
+                onClick={handleAddToCart}
+                disabled={mappedProduct.stock === 0}
+                size="lg"
+                className="flex-1"
+              >
                 Thêm vào giỏ hàng
               </Button>
-              <Button onClick={() => { handleAddToCart(); router.push('/cart'); }} disabled={mappedProduct.stock === 0} variant="outline" size="lg" className="flex-1">
+              <Button
+                onClick={() => {
+                  // Mua ngay: không ảnh hưởng đến cart, chuyển sang checkout với productId & quantity
+                  router.push(`/checkout?productId=${mappedProduct.id}&quantity=${quantity}`);
+                }}
+                disabled={mappedProduct.stock === 0}
+                variant="outline"
+                size="lg"
+                className="flex-1"
+              >
                 Mua ngay
               </Button>
             </div>
@@ -364,7 +395,17 @@ export default function ProductDetailPage() {
             <h2 className="text-2xl font-bold mb-6">Sản phẩm tương tự</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {relatedProducts.map(p => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={handleAddRelatedToCart}
+                  onAddToWishlist={(prod) =>
+                    toast({
+                      title: "Đã thêm vào yêu thích",
+                      description: `${prod.name} đã được thêm vào danh sách yêu thích`,
+                    })
+                  }
+                />
               ))}
             </div>
           </section>

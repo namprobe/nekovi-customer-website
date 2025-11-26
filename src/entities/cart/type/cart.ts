@@ -53,6 +53,7 @@ export interface CartState {
   updateCartItem: (cartItemId: string, quantity: number) => Promise<{ success: boolean; error?: string; errors?: string[] }>
   deleteCartItem: (cartItemId: string) => Promise<{ success: boolean; error?: string }>
   clearCart: () => Promise<{ success: boolean; error?: string }>
+  clearCartState: () => void // Clear cart state without API call (for logout)
   clearError: () => void
 }
 

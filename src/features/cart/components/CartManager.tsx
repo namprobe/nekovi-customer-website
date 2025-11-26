@@ -47,15 +47,27 @@ export function CartManager() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteTargetItemId, setDeleteTargetItemId] = useState<string | null>(null)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
-  const cartFetchedRef = useRef(false)
+  const pageFetchedRef = useRef<number | null>(null)
 
-  // Fetch cart when component loads
+  // Fetch cart when:
+  // 1. User is authenticated and hydrated
+  // 2. Cart is null (not yet loaded by provider) - fetch first page
+  // 3. Page changes (pagination) - fetch new page
   useEffect(() => {
-    if (isHydrated && isAuthenticated && !cartFetchedRef.current) {
-      cartFetchedRef.current = true
-      fetchCart({ page: currentPage, pageSize: ITEMS_PER_PAGE })
+    if (isHydrated && isAuthenticated) {
+      // If cart is null, fetch first page
+      if (!cart) {
+        if (pageFetchedRef.current !== 1) {
+          pageFetchedRef.current = 1
+          fetchCart({ page: 1, pageSize: ITEMS_PER_PAGE })
+        }
+      } else if (pageFetchedRef.current !== currentPage) {
+        // Page changed or reset - fetch the current page
+        pageFetchedRef.current = currentPage
+        fetchCart({ page: currentPage, pageSize: ITEMS_PER_PAGE })
+      }
     }
-  }, [isHydrated, isAuthenticated, currentPage, fetchCart])
+  }, [isHydrated, isAuthenticated, currentPage, fetchCart, cart])
 
   const handleCheckout = () => {
     router.push("/checkout")
@@ -63,8 +75,7 @@ export function CartManager() {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    cartFetchedRef.current = false
-    fetchCart({ page, pageSize: ITEMS_PER_PAGE })
+    pageFetchedRef.current = null // Reset to allow fetch
   }
 
   const handleUpdateQuantity = async (cartItemId: string, currentQuantity: number, delta: number) => {
@@ -90,7 +101,7 @@ export function CartManager() {
       })
     } else {
       // Refresh cart to get latest data
-      cartFetchedRef.current = false
+      pageFetchedRef.current = null
       await fetchCart({ page: currentPage, pageSize: ITEMS_PER_PAGE })
     }
   }
@@ -102,7 +113,8 @@ export function CartManager() {
         title: "Thành công",
         description: "Đã xóa sản phẩm khỏi giỏ hàng",
       })
-      cartFetchedRef.current = false
+      // Cart will be refreshed automatically by deleteCartItem action
+      pageFetchedRef.current = null
     } else {
       toast({
         title: "Lỗi",
@@ -148,7 +160,8 @@ export function CartManager() {
       })
       setEditingItemId(null)
       setEditingQuantity("")
-      cartFetchedRef.current = false
+      // Cart will be refreshed automatically by updateCartItem action
+      pageFetchedRef.current = null
     } else {
       toast({
         title: "Lỗi",
@@ -438,7 +451,8 @@ export function CartManager() {
                 const result = await clearCart()
                 if (result.success) {
                   toast({ title: "Thành công", description: "Đã xóa toàn bộ giỏ hàng" })
-                  cartFetchedRef.current = false
+                  // Cart will be refreshed automatically by clearCart action
+                  pageFetchedRef.current = null
                 } else {
                   toast({ title: "Lỗi", description: result.error || "Xóa giỏ hàng thất bại", variant: "destructive" })
                 }
