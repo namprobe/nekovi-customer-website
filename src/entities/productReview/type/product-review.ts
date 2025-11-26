@@ -1,4 +1,4 @@
-// src/entities/product-review/type/product-review.ts
+//src/entities/productReview/type/product-review.ts
 export interface ProductReviewCreateRequest {
     productId: string;
     rating: number;

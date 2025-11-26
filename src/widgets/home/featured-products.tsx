@@ -1,58 +1,176 @@
-"use client"
+//src/widgets/home/featured-products.tsx
+"use client";
 
-import { ProductCard } from "@/src/features/product/product-card"
-import type { Product } from "@/src/shared/types"
-import { useCartStore } from "@/src/entities/cart/service"
-import { useToast } from "@/src/hooks/use-toast"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { ProductCard } from "@/src/features/product/product-card";
+import { productService } from "@/src/entities/product/service/product-service";
+import { Button } from "@/src/components/ui/button";
+import { ChevronRight } from "lucide-react";
+import type { ProductItem } from "@/src/entities/product/type/product";
+import { useCartStore } from "@/src/entities/cart/service";
+import { useToast } from "@/src/hooks/use-toast";
 
-interface FeaturedProductsProps {
-  title: string
-  products: Product[]
+interface FeaturedProductsSectionProps {
+  title: string;
+  /** true = lấy mới nhất, false = lấy ngẫu nhiên */
+  isNewest?: boolean;
+  limit?: number;
+  showViewAll?: boolean; // chỉ phần "mới nhất" mới có nút xem tất cả
 }
 
-export function FeaturedProducts({ title, products }: FeaturedProductsProps) {
-  const { addToCart } = useCartStore()
-  const { toast } = useToast()
+export function FeaturedProductsSection({
+  title,
+  isNewest = true,
+  limit = 20,
+  showViewAll = false,
+}: FeaturedProductsSectionProps) {
+  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { addToCart } = useCartStore();
+  const { toast } = useToast();
 
-  const handleAddToCart = (product: Product) => {
-    addToCart({ productId: product.id, quantity: 1 }).then((result) => {
-      if (result.success) {
-        toast({
-          title: "Đã thêm vào giỏ hàng",
-          description: `${product.name} đã được thêm vào giỏ hàng`,
-        })
-      } else {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const query = {
+          page: 1,
+          pageSize: limit * 5, // lấy dư để random nếu cần
+          sortType: isNewest ? "newest" : undefined,
+        };
+
+        const res = await productService.getProductList(query);
+
+        let list = res.items;
+
+        // Nếu không phải newest → random
+        if (!isNewest) {
+          list = [...list].sort(() => Math.random() - 0.5);
+        }
+
+        setProducts(list.slice(0, limit));
+      } catch (err) {
+        console.error(err);
         toast({
           title: "Lỗi",
-          description: result.error || "Không thể thêm vào giỏ hàng",
+          description: "Không tải được danh sách sản phẩm",
           variant: "destructive",
-        })
+        });
+      } finally {
+        setLoading(false);
       }
-    })
-  }
+    };
 
-  const handleAddToWishlist = (product: Product) => {
+    fetchProducts();
+  }, [isNewest, limit, toast]);
+
+  const handleAddToCart = async (product: ProductItem) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({
+        title: "Đã thêm vào giỏ hàng",
+        description: `${product.name} đã được thêm vào giỏ hàng`,
+      });
+    } else {
+      toast({
+        title: "Lỗi",
+        description: result.error || "Không thể thêm vào giỏ hàng",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddToWishlist = (product: ProductItem) => {
     toast({
       title: "Đã thêm vào yêu thích",
       description: `${product.name} đã được thêm vào danh sách yêu thích`,
-    })
+    });
+  };
+
+  // Hàm chuyển đổi ProductItem → Product (để tương thích với ProductCard hiện tại)
+  const mapToProductCard = (item: ProductItem) => ({
+    id: item.id,
+    name: item.name,
+    slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
+    description: item.description || "",
+    price: item.price,
+    originalPrice: item.discountPrice ? item.price : undefined,
+    discount: item.discountPrice
+      ? Math.round(((item.price - item.discountPrice) / item.price) * 100)
+      : undefined,
+    categoryId: item.categoryId,
+    category: item.category
+      ? {
+        id: item.category.id,
+        name: item.category.name,
+        slug: item.category.name.toLowerCase().replace(/\s+/g, "-"),
+      }
+      : undefined,
+    images:
+      item.primaryImage || item.images?.[0]?.imagePath
+        ? [
+          {
+            id: `${item.id}-primary`,
+            productId: item.id,
+            url: item.primaryImage || item.images![0].imagePath,
+            isPrimary: true,
+            order: 0,
+          },
+        ]
+        : [],
+    stock: item.stockQuantity,
+    isPreOrder: item.isPreOrder || false,
+    rating: item.averageRating,
+    reviewCount: item.reviewCount,
+    createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : "",
+  });
+
+  if (loading) {
+    return (
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <h2 className="mb-8 text-3xl font-bold">{title}</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {Array.from({ length: limit }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-square bg-muted rounded-lg mb-4" />
+                <div className="h-4 bg-muted rounded mb-2" />
+                <div className="h-4 bg-muted rounded w-20" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (
-    <section className="py-12">
+    <section className="py-12 bg-gray-50">
       <div className="container mx-auto px-4">
-        <h2 className="mb-8 text-3xl font-bold text-balance">{title}</h2>
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-balance">{title}</h2>
+          {showViewAll && (
+            <Link href="/products">
+              <Button variant="ghost" className="group">
+                Xem các sản phẩm khác
+                <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            </Link>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {products.map((product) => (
+          {products.map((item) => (
             <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={handleAddToCart}
-              onAddToWishlist={handleAddToWishlist}
+              key={item.id}
+              product={mapToProductCard(item)}
+              onAddToCart={() => handleAddToCart(item)}
+              onAddToWishlist={() => handleAddToWishlist(item)}
             />
           ))}
         </div>
       </div>
     </section>
-  )
+  );
 }
