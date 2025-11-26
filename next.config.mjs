@@ -4,6 +4,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    // Tắt tối ưu hóa của Next Image cho tất cả ảnh remote
+    // để tránh lỗi 400 khi proxy ảnh từ ngrok / môi trường bên ngoài.
+    // Next.js sẽ render <img> bình thường với URL backend trả về.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'http',
@@ -15,6 +19,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'localhost',
         port: '7252',
+        pathname: '/uploads/**',
+      },
+      {
+        // Ngrok public URL for backend file storage (product images, etc.)
+        protocol: 'https',
+        hostname: '702e7b8f0a56.ngrok-free.app',
+        port: '',
         pathname: '/uploads/**',
       },
       {
