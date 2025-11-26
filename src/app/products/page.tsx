@@ -16,6 +16,8 @@ import { useDebounce } from 'use-debounce';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AsyncSelect } from '@/src/shared/ui/selects/async-select';
 import { useCategorySelectStore } from '@/src/entities/categories/services/category-select-service';
+import { categoryService } from '@/src/entities/categories/services/category.service';
+
 import type { Product } from '@/src/shared/types';
 import ProductCardSkeleton from '@/src/features/product/product-card-skeleton';
 import { useCartStore } from '@/src/entities/cart/service';
@@ -41,6 +43,7 @@ export default function ProductsPage() {
 
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
     useCategorySelectStore();
+  // categoryService.getCategorySelectList();
 
   const handleAddToCart = async (product: Product) => {
     const result = await addToCart({ productId: product.id, quantity: 1 });
