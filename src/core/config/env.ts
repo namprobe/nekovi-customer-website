@@ -38,12 +38,14 @@ export const env = {
             DETAIL: (id: string) => `/products/${id}`,
         },
         CATEGORY: {
+            LIST: `/categories`,
             SELECT_LIST: `/categories/select-list`,
         },
         ANIME_SERIES: {
             SELECT_LIST: `/anime-series`,
         },
         PRODUCT_REVIEW: {
+            LIST: `/product-reviews`,
             CREATE: `/product-reviews`,
             GET_BY_PRODUCT: (productId: string) => `/product-reviews/product/${productId}`,
             UPDATE: (id: string) => `/product-reviews/${id}`,
@@ -69,6 +71,7 @@ export const env = {
         ORDER: {
             PLACE: `/orders`,
             LIST: `/orders`,
+            DETAIL: (id: string) => `/orders/${id}`,
         },
         PAYMENT_METHOD: {
             LIST: `/payment-methods`,
