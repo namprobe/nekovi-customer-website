@@ -2,7 +2,7 @@
 'use client';
 
 import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
@@ -21,13 +21,23 @@ import { categoryService } from '@/src/entities/categories/services/category.ser
 import type { Product } from '@/src/shared/types';
 import ProductCardSkeleton from '@/src/features/product/product-card-skeleton';
 import { useCartStore } from '@/src/entities/cart/service';
+import { useWishlistStore } from '@/src/entities/wishlist/service';
 import { useToast } from '@/src/hooks/use-toast';
+import { useAuth } from '@/src/core/providers/auth-provider';
 
 export default function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { addToCart } = useCartStore();
+  const wishlistStore = useWishlistStore();
+  const { addToWishlist, isInWishlist, fetchWishlist } = wishlistStore;
   const { toast } = useToast();
+  const { isAuthenticated } = useAuth();
+
+  console.log('🔴 [Products Page] wishlistStore:', wishlistStore);
+  console.log('🔴 [Products Page] wishlistStore keys:', Object.keys(wishlistStore));
+  console.log('🔴 [Products Page] addToWishlist function:', addToWishlist);
+  console.log('🔴 [Products Page] addToWishlist type:', typeof addToWishlist);
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedSearch] = useDebounce(searchQuery, 500);
@@ -61,12 +71,40 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddToWishlist = (product: Product) => {
-    toast({
-      title: "Đã thêm vào yêu thích",
-      description: `${product.name} đã được thêm vào danh sách yêu thích`,
-    });
-  };
+  const handleAddToWishlist = useCallback(async (product: Product) => {
+    try {
+      console.log('🟡🟡🟡 [PRODUCTS PAGE handleAddToWishlist] Called with product:', product.id, product.name)
+      console.log('🟡 [handleAddToWishlist] wishlistStore object:', wishlistStore)
+      console.log('🟡 [handleAddToWishlist] wishlistStore.addToWishlist:', wishlistStore.addToWishlist)
+      console.log('🟡 [handleAddToWishlist] Calling addToWishlist from store...')
+      
+      // Call directly from store object instead of destructured function
+      const result = await wishlistStore.addToWishlist({ productId: product.id });
+      
+      console.log('🟡 [handleAddToWishlist] Result from addToWishlist:', result)
+      
+      if (result.success) {
+        const isLiked = wishlistStore.isInWishlist(product.id);
+        toast({
+          title: isLiked ? "Đã xóa khỏi yêu thích" : "Đã thêm vào yêu thích",
+          description: `${product.name}`,
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: result.error || "Không thể cập nhật danh sách yêu thích",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('🔴 [handleAddToWishlist] Error:', error);
+      toast({
+        title: "Lỗi",
+        description: "Đã xảy ra lỗi khi cập nhật wishlist",
+        variant: "destructive",
+      });
+    }
+  }, [wishlistStore, toast]);
 
   useEffect(() => {
     setInputPage(currentPage);
@@ -77,6 +115,14 @@ export default function ProductsPage() {
       fetchCategories('');
     }
   }, []);
+
+  // Fetch wishlist when component mounts (if user is authenticated)
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🟣 [Products Page] Fetching wishlist on mount');
+      fetchWishlist();
+    }
+  }, [isAuthenticated, fetchWishlist]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
