@@ -33,6 +33,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/anime", label: "Anime" },
     { href: "/products", label: "Sản Phẩm" },
+    { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
     { href: "/awards", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },

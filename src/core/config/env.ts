@@ -65,6 +65,11 @@ export const env = {
             CREATE: `/wishlist`,
             REMOVE_ITEM: (productId: string) => `/wishlist/${productId}`,
         },
+        COUPON: {
+            AVAILABLE: `/coupons/available`,
+            MY_COUPONS: `/coupons/my-coupons`,
+            COLLECT: `/coupons/collect`,
+        },
         BLOG: {
             LIST: `/blog-posts`,
             LATEST_BY_CATEGORY: `/blog-posts/latest-by-category`,

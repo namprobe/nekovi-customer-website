@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect } from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
@@ -121,11 +120,10 @@ export default function WishlistPage() {
                   <Card key={item.wishlistItemId} className="group relative overflow-hidden transition-all hover:shadow-lg">
                     <Link href={`/products/${item.productId}`}>
                       <div className="relative aspect-square overflow-hidden bg-muted">
-                        <Image
+                        <img
                           src={product.primaryImage || "/placeholder.svg?height=400&width=400"}
                           alt={product.name}
-                          fill
-                          className="object-cover transition-transform group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
                       </div>
                     </Link>
