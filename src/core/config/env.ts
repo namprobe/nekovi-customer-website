@@ -63,16 +63,6 @@ export const env = {
             DELETE_ITEM: (cartItemId: string) => `/cart/${cartItemId}`,
             CLEAR: `/cart/clear`,
         },
-        WISHLIST: {
-            BASE: `/wishlist`,
-            CREATE: `/wishlist`,
-            REMOVE_ITEM: (productId: string) => `/wishlist/${productId}`,
-        },
-        COUPON: {
-            AVAILABLE: `/coupons/available`,
-            MY_COUPONS: `/coupons/my-coupons`,
-            COLLECT: `/coupons/collect`,
-        },
         BLOG: {
             LIST: `/blog-posts`,
             LATEST_BY_CATEGORY: `/blog-posts/latest-by-category`,
