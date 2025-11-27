@@ -3,7 +3,7 @@
 export interface PlaceOrderRequest {
   productId?: string | null
   quantity?: number | null
-  couponCode?: string | null
+  userCouponId?: string | null
   paymentMethodId: string
   isOneClick?: boolean
   guestEmail?: string | null

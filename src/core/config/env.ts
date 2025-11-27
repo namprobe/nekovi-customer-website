@@ -54,6 +54,9 @@ export const env = {
         USER_ADDRESS: {
             BASE: `/user-addresses`,
         },
+        USER_COUPON: {
+            BASE: `/user-coupons`,
+        },
         CART: {
             BASE: `/cart`,
             UPDATE_ITEM: (cartItemId: string) => `/cart/${cartItemId}`,
