@@ -54,7 +54,7 @@ export const useCouponStore = create<CouponState>()(
 
           if (result.isSuccess && result.data) {
             set({
-              userCoupons: result.data.coupons,
+              userCoupons: result.data.items || [],
               isLoading: false,
             })
           } else {

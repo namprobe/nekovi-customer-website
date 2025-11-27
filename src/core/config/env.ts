@@ -67,7 +67,7 @@ export const env = {
         },
         COUPON: {
             AVAILABLE: `/coupons/available`,
-            MY_COUPONS: `/coupons/my-coupons`,
+            MY_COUPONS: `/user-coupons`,
             COLLECT: `/coupons/collect`,
         },
         BLOG: {
