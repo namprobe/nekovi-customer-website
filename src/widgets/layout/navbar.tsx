@@ -19,6 +19,7 @@ import {
 } from "@/src/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
 import { CartPopup } from "@/src/widgets/cart/cart-popup"
+import { WishlistPopup } from "@/src/widgets/wishlist/wishlist-popup"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
@@ -36,6 +37,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/anime", label: "Anime" },
     { href: "/products", label: "Sản Phẩm" },
+    { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
     { href: "/awards", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },
@@ -95,6 +97,9 @@ export function Navbar() {
         {/* Right Actions */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
+
+          {/* Wishlist Popup */}
+          <WishlistPopup />
 
           {/* Cart Popup */}
           <CartPopup />
