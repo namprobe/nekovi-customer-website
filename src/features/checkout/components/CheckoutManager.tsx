@@ -6,6 +6,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
 import Image from "next/image"
 import { Loader2 } from "lucide-react"
 import { useCartStore } from "@/src/entities/cart/service"
@@ -15,6 +16,7 @@ import { Input } from "@/src/components/ui/input"
 import { Label } from "@/src/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/src/components/ui/radio-group"
 import { Checkbox } from "@/src/components/ui/checkbox"
+import { Badge } from "@/src/components/ui/badge"
 import { formatCurrency } from "@/src/shared/utils/format"
 import { useToast } from "@/src/hooks/use-toast"
 import { Pagination } from "@/src/components/ui/pagination"
@@ -22,16 +24,29 @@ import { orderService } from "@/src/entities/order/service"
 import { paymentMethodService } from "@/src/entities/payment-method/service"
 import type { PaymentMethodItem } from "@/src/entities/payment-method/type/payment-method"
 import { EntityStatusEnum } from "@/src/entities/user-address/type/user-address"
-import type { CartItemResponse, CartResponse } from "@/src/entities/cart/type/cart"
+import type { CartItemResponse } from "@/src/entities/cart/type/cart"
 import { useProductDetail } from "@/src/features/product/hooks/use-product-detail"
-import { apiClient } from "@/src/core/lib/api-client"
-import { env } from "@/src/core/config/env"
+import { cn } from "@/src/lib/utils"
+import { useUserAddressStore } from "@/src/entities/user-address/service/user-address-service"
+import { useUserCouponStore } from "@/src/entities/user-coupon/service/user-coupon-service"
+import { DiscountTypeEnum } from "@/src/entities/user-coupon/type/user-coupon"
 
 const ITEMS_PER_PAGE = 3
 
 export function CheckoutManager() {
   const { cart, fetchCart, isLoading: isCartLoading } = useCartStore()
   const { user, isAuthenticated, isHydrated } = useAuth()
+  const {
+    addresses,
+    fetchAddresses,
+    isLoading: isAddressLoading,
+  } = useUserAddressStore()
+  const {
+    coupons,
+    fetchCoupons,
+    clearCoupons,
+    isLoading: isCouponLoading,
+  } = useUserCouponStore()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -42,6 +57,8 @@ export function CheckoutManager() {
   const [couponCode, setCouponCode] = useState("")
   const [saveInfo, setSaveInfo] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("")
+  const [isCouponPanelOpen, setIsCouponPanelOpen] = useState(true)
   
   // Local state for accumulated cart items
   const [displayedItems, setDisplayedItems] = useState<CartItemResponse[]>([])
@@ -50,6 +67,8 @@ export function CheckoutManager() {
   const [totalPrice, setTotalPrice] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const cartFetchedRef = useRef(false)
+  const addressFetchedRef = useRef(false)
+  const couponFetchedRef = useRef(false)
 
   // Detect "Buy Now" mode from query params
   const buyNowProductId = searchParams.get("productId")
@@ -75,6 +94,78 @@ export function CheckoutManager() {
       fetchCart({ page: 1, pageSize: ITEMS_PER_PAGE }).catch(() => {})
     }
   }, [isHydrated, isAuthenticated, fetchCart, isBuyNow])
+
+  // Fetch user addresses once user is ready
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) {
+      addressFetchedRef.current = false
+      setSelectedAddressId("")
+      return
+    }
+
+    if (addressFetchedRef.current) return
+
+    addressFetchedRef.current = true
+    fetchAddresses({
+      page: 1,
+      pageSize: 6,
+      status: EntityStatusEnum.Active,
+      isCurrentUser: true,
+    }).catch(() => {
+      addressFetchedRef.current = false
+    })
+  }, [isHydrated, isAuthenticated, fetchAddresses])
+
+  // Auto select default address when list changes
+  useEffect(() => {
+    if (!isAuthenticated || addresses.length === 0) return
+
+    setSelectedAddressId((prev) => {
+      if (prev && addresses.some((address) => address.id === prev)) {
+        return prev
+      }
+      const defaultAddress = addresses.find((address) => address.isDefault)
+      return (defaultAddress ?? addresses[0]).id
+    })
+  }, [addresses, isAuthenticated])
+
+  // Fetch user coupons once
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) {
+      couponFetchedRef.current = false
+      clearCoupons()
+      return
+    }
+
+    if (couponFetchedRef.current) return
+
+    couponFetchedRef.current = true
+    fetchCoupons({
+      page: 1,
+      pageSize: 10,
+      isCurrentUser: true,
+      onlyActiveCoupons: true,
+      status: EntityStatusEnum.Active,
+      isUsed: false,
+      isExpired: false,
+    }).catch(() => {
+      couponFetchedRef.current = false
+    })
+  }, [isHydrated, isAuthenticated, fetchCoupons, clearCoupons])
+
+  const selectedAddress = addresses.find((address) => address.id === selectedAddressId) || null
+  const availableCoupons = coupons.filter(
+    (coupon) => !coupon.isUsed && !coupon.isExpired && coupon.status === EntityStatusEnum.Active
+  )
+
+  const handleApplyCoupon = (code: string) => {
+    setCouponCode(code)
+    toast({
+      title: "Đã chọn mã giảm giá",
+      description: `Đã áp dụng mã ${code} cho đơn hàng`,
+    })
+    setIsCouponPanelOpen(false)
+  }
 
   // Update displayed items when cart changes (cart checkout mode)
   useEffect(() => {
@@ -365,26 +456,100 @@ export function CheckoutManager() {
               </h2>
 
               {isAuthenticated ? (
-                // User đã login: chỉ hiển thị note (optional)
-                <div className="space-y-4">
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <p className="text-sm text-muted-foreground">
-                      Thông tin giao hàng sẽ được lấy từ tài khoản của bạn.
-                    </p>
-                    {user && (
-                      <div className="mt-2 space-y-1 text-sm">
-                        <p>
-                          <span className="font-medium">Họ tên:</span> {user.username || "Chưa cập nhật"}
-                        </p>
-                        <p>
-                          <span className="font-medium">Email:</span> {user.email || "Chưa cập nhật"}
-                        </p>
-                        {user.phoneNumber && (
-                          <p>
-                            <span className="font-medium">Số điện thoại:</span> {user.phoneNumber}
-                          </p>
-                        )}
+                <div className="space-y-6">
+                  <div className="rounded-lg border bg-card/70 p-5 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-foreground">Thông tin Liên Hệ</h3>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/profile">Chỉnh sửa</Link>
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Họ và tên</Label>
+                        <Input
+                          value={
+                            user
+                              ? `${(user.lastName || "").trim()} ${(user.firstName || "").trim()}`.trim() ||
+                                user.username ||
+                                "Chưa cập nhật"
+                              : "Chưa cập nhật"
+                          }
+                          readOnly
+                          className="bg-muted/40"
+                        />
                       </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Email</Label>
+                        <Input value={user?.email || "Chưa cập nhật"} readOnly className="bg-muted/40" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Số điện thoại</Label>
+                        <Input value={user?.phoneNumber || "Chưa cập nhật"} readOnly className="bg-muted/40" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div id="address-section" className="rounded-lg border bg-card/60 p-4 shadow-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-semibold text-foreground">Địa chỉ giao hàng</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Chọn địa chỉ phù hợp để cửa hàng giao hàng chính xác hơn.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {isAddressLoading && <Loader2 className="h-4 w-4 animate-spin text-primary" />}
+                        <Button type="button" variant="outline" size="sm" asChild>
+                          <Link href="/profile?tab=addresses">Quản lý địa chỉ</Link>
+                        </Button>
+                      </div>
+                    </div>
+
+                    {addresses.length === 0 ? (
+                      <div className="mt-4 rounded-xl border border-dashed bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+                        Bạn chưa lưu địa chỉ nào. Hãy thêm địa chỉ mới ở trang hồ sơ để đặt hàng nhanh hơn.
+                      </div>
+                    ) : (
+                      <RadioGroup
+                        value={selectedAddressId}
+                        onValueChange={setSelectedAddressId}
+                        className="mt-4 grid gap-3 sm:grid-cols-2"
+                      >
+                        <div className="sm:col-span-2 max-h-72 w-full space-y-3 overflow-y-auto pr-1">
+                          {addresses.map((address) => {
+                            const isSelected = selectedAddressId === address.id
+                            return (
+                              <label
+                                key={address.id}
+                                htmlFor={`address-${address.id}`}
+                                className={cn(
+                                  "flex cursor-pointer gap-3 rounded-2xl border bg-background p-4 text-sm transition-all",
+                                  isSelected
+                                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
+                                    : "border-border hover:border-primary/40"
+                                )}
+                              >
+                                <RadioGroupItem value={address.id} id={`address-${address.id}`} className="mt-1" />
+                                <div className="flex-1 space-y-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <p className="font-semibold text-foreground">{address.fullName}</p>
+                                    {address.isDefault && (
+                                      <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                                        Mặc định
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {address.phoneNumber && (
+                                    <p className="text-muted-foreground">{address.phoneNumber}</p>
+                                  )}
+                                  <p className="text-muted-foreground">{address.fullAddress}</p>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                      </RadioGroup>
                     )}
                   </div>
 
@@ -469,10 +634,38 @@ export function CheckoutManager() {
             </div>
           </div>
 
-          {/* Order Summary */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-4 space-y-6 rounded-lg border bg-card p-6">
-              <div className="space-y-4">
+        {/* Order Summary */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-4 space-y-6 rounded-lg border bg-card p-6">
+            {isAuthenticated && (
+              <div className="space-y-2 rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center justify-between text-sm font-semibold text-muted-foreground">
+                  <span>Địa chỉ nhận hàng</span>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="px-0"
+                    onClick={() => {
+                      document.getElementById("address-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                    }}
+                  >
+                    Thay đổi
+                  </Button>
+                </div>
+                {selectedAddress ? (
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground">{selectedAddress.fullName}</p>
+                    {selectedAddress.phoneNumber && <p>{selectedAddress.phoneNumber}</p>}
+                    <p>{selectedAddress.fullAddress}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Vui lòng chọn địa chỉ giao hàng.</p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-4">
                 {displayedItems.map((item) => (
                   <div key={item.id} className="flex gap-3">
                     <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg">
@@ -512,15 +705,76 @@ export function CheckoutManager() {
                   <span className="text-muted-foreground">Shipping:</span>
                   <span className="font-medium">Miễn phí</span>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex gap-2">
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <Input
                       placeholder="Nhập mã giảm giá"
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value)}
                       className="flex-1"
                     />
+                    {isAuthenticated && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsCouponPanelOpen((prev) => !prev)}
+                        className="whitespace-nowrap"
+                      >
+                        {isCouponPanelOpen ? "Ẩn danh sách" : "Chọn mã"}
+                      </Button>
+                    )}
                   </div>
+
+                  {!isAuthenticated && (
+                    <p className="text-xs text-muted-foreground">Đăng nhập để xem danh sách mã giảm giá của bạn.</p>
+                  )}
+
+                  {isAuthenticated && isCouponPanelOpen && (
+                    <div className="max-h-64 space-y-3 overflow-y-auto rounded-lg border bg-muted/30 p-3">
+                      {isCouponLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        </div>
+                      ) : availableCoupons.length === 0 ? (
+                        <p className="text-sm text-center text-muted-foreground">
+                          Bạn chưa có mã giảm giá khả dụng.
+                        </p>
+                      ) : (
+                        availableCoupons.map((coupon) => (
+                          <div key={coupon.id} className="rounded-lg border bg-background/80 p-3 text-sm shadow-sm">
+                            <div className="flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-base font-semibold text-primary">{coupon.couponCode}</p>
+                                {(coupon.couponName || coupon.description) && (
+                                  <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                    {coupon.couponName || coupon.description}
+                                  </p>
+                                )}
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => handleApplyCoupon(coupon.couponCode)}
+                              >
+                                Dùng mã
+                              </Button>
+                            </div>
+                            <div className="mt-2 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                              <span>
+                                Ưu đãi:{" "}
+                                {coupon.discountType === DiscountTypeEnum.Percentage
+                                  ? `${coupon.discountValue}%`
+                                  : formatCurrency(coupon.discountValue)}
+                              </span>
+                              <span>Tối thiểu: {formatCurrency(coupon.minOrderAmount)}</span>
+                              <span>HSD: {new Date(coupon.endDate).toLocaleDateString("vi-VN")}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -594,4 +848,3 @@ export function CheckoutManager() {
     </>
   )
 }
-
