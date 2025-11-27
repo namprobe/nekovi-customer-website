@@ -459,7 +459,7 @@ export function CheckoutManager() {
                 <div className="space-y-6">
                   <div className="rounded-lg border bg-card/70 p-5 shadow-sm">
                     <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-lg font-bold text-foreground">Thông tin giao hàng</h3>
+                      <h3 className="text-lg font-bold text-foreground">Thông tin Liên Hệ</h3>
                       <Button asChild variant="outline" size="sm">
                         <Link href="/profile">Chỉnh sửa</Link>
                       </Button>
@@ -467,7 +467,17 @@ export function CheckoutManager() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Họ và tên</Label>
-                        <Input value={user?.username || "Chưa cập nhật"} readOnly className="bg-muted/40" />
+                        <Input
+                          value={
+                            user
+                              ? `${(user.lastName || "").trim()} ${(user.firstName || "").trim()}`.trim() ||
+                                user.username ||
+                                "Chưa cập nhật"
+                              : "Chưa cập nhật"
+                          }
+                          readOnly
+                          className="bg-muted/40"
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Email</Label>
