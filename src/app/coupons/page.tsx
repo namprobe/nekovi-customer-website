@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import Link from "next/link"
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
@@ -82,14 +83,26 @@ export default function CouponsPage() {
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="flex items-center justify-center mb-4">
-            <Gift className="h-12 w-12 text-primary mr-3" />
-            <h1 className="text-4xl font-bold">Phiếu Giảm Giá</h1>
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <Gift className="h-12 w-12 text-primary mr-3" />
+              <div>
+                <h1 className="text-4xl font-bold">Phiếu Giảm Giá</h1>
+                <p className="text-muted-foreground text-lg">
+                  Thu thập phiếu giảm giá để tiết kiệm chi phí cho đơn hàng của bạn!
+                </p>
+              </div>
+            </div>
+            {isAuthenticated && (
+              <Link href="/my-coupons">
+                <Button variant="outline" size="lg">
+                  <Ticket className="mr-2 h-5 w-5" />
+                  Phiếu của tôi
+                </Button>
+              </Link>
+            )}
           </div>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Thu thập phiếu giảm giá để tiết kiệm chi phí cho đơn hàng của bạn!
-          </p>
         </div>
 
         {/* Loading State */}

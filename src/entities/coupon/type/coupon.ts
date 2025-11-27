@@ -19,23 +19,32 @@ export interface AvailableCouponsResponse {
 }
 
 export interface UserCoupon {
-  userCouponId: string
+  id: string
   couponId: string
-  code: string
+  couponCode: string
+  couponName?: string
   description?: string
   discountType: 'Percentage' | 'FixedAmount'
+  discountTypeName: string
   discountValue: number
   minOrderAmount: number
   startDate: string
   endDate: string
-  collectedDate: string
+  usageLimit?: number
+  currentUsage: number
   usedDate?: string
   isUsed: boolean
   isExpired: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface UserCouponsResponse {
-  coupons: UserCoupon[]
+  items: UserCoupon[]
+  totalItems: number
+  currentPage: number
+  pageSize: number
+  totalPages: number
 }
 
 export interface CollectCouponRequest {
