@@ -130,6 +130,9 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/wishlist">Yêu Thích</Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-coupons">Phiếu Của Tôi</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                   Đăng Xuất
@@ -187,6 +190,9 @@ export function Navbar() {
                         </Link>
                         <Link href="/wishlist" className="block text-sm hover:text-primary">
                           Yêu Thích
+                        </Link>
+                        <Link href="/my-coupons" className="block text-sm hover:text-primary">
+                          Phiếu Của Tôi
                         </Link>
                         <button 
                           onClick={handleLogout} 
