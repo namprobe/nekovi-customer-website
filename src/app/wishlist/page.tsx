@@ -79,13 +79,22 @@ export default function WishlistPage() {
 
   const getStockBadge = (stockQuantity: number) => {
     if (stockQuantity === 0) {
-      return <Badge variant="destructive" className="gap-1"><Package className="h-3 w-3" />Hết hàng</Badge>
+      return (
+  <Badge 
+    variant="outline" 
+    className="gap-1 bg-red-500 text-white  hover:bg-red-600 hover:text-white"
+  >
+    <Package className="h-3 w-3" />
+    Hết hàng
+  </Badge>
+)
+      // return <Badge variant="destructive" className="gap-1"><Package className="h-3 w-3" />Hết hàng</Badge>
     }
     if (stockQuantity < 10) {
       return (
   <Badge 
     variant="outline" 
-    className="gap-1 bg-orange-500 text-white border-black hover:bg-orange-600 hover:text-white"
+    className="gap-1 bg-orange-500 text-white hover:bg-orange-600 hover:text-white"
   >
     <Package className="h-3 w-3" />
     Sắp hết ({stockQuantity})
@@ -96,7 +105,7 @@ export default function WishlistPage() {
     return (
   <Badge 
     variant="outline" 
-    className="gap-1 bg-green-500 text-white border-black hover:bg-green-600 hover:text-white"
+    className="gap-1 bg-green-500 text-white hover:bg-green-600 hover:text-white"
   >
     <Package className="h-3 w-3" />
     Còn hàng
