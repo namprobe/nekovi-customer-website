@@ -50,6 +50,14 @@ export function WishlistPopup() {
     }
   }, [isOpen])
 
+  // Close popup and reset when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsOpen(false)
+      wishlistFetchedRef.current = false
+    }
+  }, [isAuthenticated])
+
   const handleRemove = async (productId: string, productName: string) => {
     const result = await removeFromWishlist(productId)
     if (result.success) {

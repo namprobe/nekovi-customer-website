@@ -20,16 +20,19 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
 import { CartPopup } from "@/src/widgets/cart/cart-popup"
 import { WishlistPopup } from "@/src/widgets/wishlist/wishlist-popup"
+import { useWishlistStore } from "@/src/entities/wishlist/service"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
   const { clearCartState } = useCartStore()
+  const { clearWishlistState } = useWishlistStore()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   const handleLogout = async () => {
-    // Clear cart immediately before logout
+    // Clear cart and wishlist immediately before logout
     clearCartState()
+    clearWishlistState()
     await logout()
     router.push("/login")
   }
