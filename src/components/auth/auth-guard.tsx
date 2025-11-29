@@ -1,3 +1,4 @@
+// src/components/auth/auth-guard.tsx
 "use client"
 
 import type React from "react"
@@ -30,11 +31,11 @@ export function AuthGuard({
     if (!isMounted) return // Wait for client-side mount
 
     // DEBUG: Log state to help debugging
-    console.log('🔒 AuthGuard State:', { 
-      isLoading, 
-      isAuthenticated, 
+    console.log('🔒 AuthGuard State:', {
+      isLoading,
+      isAuthenticated,
       isMounted,
-      requireAuth, 
+      requireAuth,
       hasUser: !!user
     })
 

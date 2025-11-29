@@ -2,12 +2,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
 import { Pagination } from '@/src/components/ui/pagination';
-import { Button } from '@/src/components/ui/button';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
-import { AnimeCard } from '@/src/features/anime/components/AnimeCard';
+import { AnimeCard } from '@/src/features/anime/components/animeCard';
 import { useAnimeList } from '@/src/features/anime/hooks/useAnimeList';
 import { useFeaturedAnime } from '@/src/features/anime/hooks/useFeaturedAnime';
 import { AnimeSeriesFilter } from '@/src/entities/anime/type/anime';

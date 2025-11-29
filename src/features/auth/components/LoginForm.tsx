@@ -29,10 +29,10 @@ export function LoginForm() {
       })
       router.push("/")
     } else {
-      const errorMessage = result.errors && result.errors.length > 0 
-        ? result.errors.join(", ") 
+      const errorMessage = result.errors && result.errors.length > 0
+        ? result.errors.join(", ")
         : result.error || "Vui lòng kiểm tra lại thông tin đăng nhập"
-      
+
       toast({
         title: "Đăng nhập thất bại",
         description: errorMessage,
