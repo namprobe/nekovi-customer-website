@@ -4,38 +4,36 @@ import { env } from "@/src/core/config/env";
 import type { HomeImageItem, HomeImageListResponse } from "../types/home-image";
 
 export const homeImageService = {
-    getList: async (params?: {
+    async getList(params: {
         page?: number;
         pageSize?: number;
         search?: string;
         animeSeriesId?: string;
-        hasAnimeSeries?: boolean;
         sortBy?: string;
         isAscending?: boolean;
-    }): Promise<HomeImageListResponse> => {
-        const result = await apiClient.paginate<HomeImageItem>(
-            env.ENDPOINTS.HOME_IMAGE.LIIST,
-            {
-                page: params?.page ?? 1,
-                pageSize: params?.pageSize ?? 20,
-                search: params?.search,
-                animeSeriesId: params?.animeSeriesId,
-                hasAnimeSeries: params?.hasAnimeSeries,
-                sortBy: params?.sortBy ?? "createdAt",
-                isAscending: params?.isAscending ?? false,
-            }
-        );
+    }): Promise<HomeImageListResponse> {
+        const { page = 1, pageSize = 50, search, animeSeriesId, sortBy = "createdAt", isAscending = false } = params;
 
-        if (!result.isSuccess) {
-            console.error("Lỗi khi lấy danh sách HomeImage:", result.errors);
-            return { items: [], totalCount: 0, page: 1, pageSize: 10 };
+        const response = await apiClient.paginate<HomeImageItem>(env.ENDPOINTS.HOME_IMAGE.LIST, {
+            page,
+            pageSize,
+            search: search || undefined,
+            animeSeriesId: animeSeriesId || undefined,
+            sortBy,
+            isAscending,
+        });
+
+        if (!response.isSuccess) {
+            throw new Error(response.errors?.[0] || "Failed to fetch home images");
         }
 
         return {
-            items: result.items,
-            totalCount: result.totalItems,
-            page: result.currentPage,
-            pageSize: result.pageSize,
+            items: response.items,
+            totalCount: response.totalItems,
+            page: response.currentPage,
+            pageSize: response.pageSize,
+            totalPages: response.totalPages,
+            isSuccess: true,
         };
     },
 

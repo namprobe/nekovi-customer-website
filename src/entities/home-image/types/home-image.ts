@@ -12,4 +12,7 @@ export interface HomeImageListResponse {
     totalCount: number;
     page: number;
     pageSize: number;
+    totalPages: number;
+    isSuccess: boolean;
+    errors?: string[];
 }

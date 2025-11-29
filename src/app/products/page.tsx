@@ -30,7 +30,7 @@ export default function ProductsPage() {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [debouncedSearch] = useDebounce(searchQuery, 500);
+  const [debouncedSearch] = useDebounce(searchQuery, 0);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [priceRange, setPriceRange] = useState(searchParams.get('price') || 'all');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');

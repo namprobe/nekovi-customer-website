@@ -91,7 +91,7 @@ export const env = {
             LIST: `/payment-methods`,
         },
         HOME_IMAGE: {
-            LIIST: `/home-images`,
+            LIST: `/home-images`,
         },
         USER_HOME_IMAGE: {
             LIST: `/user-home-images`,
