@@ -125,6 +125,11 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link href="/my-home-images">Ảnh Trang Chủ Của Tôi</Link>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
                 </DropdownMenuItem>
@@ -185,6 +190,9 @@ export function Navbar() {
                       <div className="space-y-2">
                         <Link href="/profile" className="block text-sm hover:text-primary">
                           Hồ Sơ Của Tôi
+                        </Link>
+                        <Link href="/my-home-images" className="block text-sm hover:text-primary">
+                          Ảnh Trang Chủ Của Tôi
                         </Link>
                         <Link href="/orders" className="block text-sm hover:text-primary">
                           Đơn Hàng

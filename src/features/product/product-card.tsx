@@ -27,17 +27,16 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCa
 
   const searchParams = useSearchParams();
   const queryString = searchParams.toString(); // giữ nguyên query params hiện tại
-  
+
   const { isInWishlist, addToWishlist: addToWishlistFromStore } = useWishlistStore();
   const { toast } = useToast();
   const isLiked = isInWishlist(product.id);
 
   const handleWishlistClick = async () => {
-    console.log('🟢 [ProductCard INTERNAL] Wishlist button clicked for:', product.id);
-    
+
     try {
       const result = await addToWishlistFromStore({ productId: product.id });
-      
+
       if (result.success) {
         const isNowLiked = isInWishlist(product.id);
         toast({

@@ -18,7 +18,6 @@ export const useHeroBannerImages = () => {
                     .map(x => x.homeImage)
                     .slice(0, 3);
 
-                console.log("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", sortedUserItems);
 
                 if (sortedUserItems.length > 0) {
                     setImages(sortedUserItems);

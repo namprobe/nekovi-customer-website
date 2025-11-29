@@ -15,7 +15,6 @@ export const userHomeImageService = {
                 return [];
             }
 
-            console.log("UserHomeImage MyList:", result.data);
             return result.data;
         } catch (error: any) {
             if (error.status === 401 || error.status === 403) {

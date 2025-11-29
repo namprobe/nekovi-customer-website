@@ -58,9 +58,8 @@ export function HeroBanner() {
               src={img.imagePath}
               alt={img.name}
               className="w-full h-full object-cover"
-              loading={i === 0 ? "eager" : "lazy"} // ảnh đầu load ngay, còn lại lazy
+              loading={i === 0 ? "eager" : "lazy"}
               draggable={false}
-              // Trick cực hay: giữ aspect ratio bằng padding-bottom (khỏi cần JS tính height)
               style={{ aspectRatio: "21 / 9" }}
             />
 
@@ -78,24 +77,41 @@ export function HeroBanner() {
         {/* Navigation - chỉ hiện khi có nhiều hơn 1 ảnh */}
         {images.length > 1 && (
           <>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur text-white"
+            {/* Left Arrow */}
+            <button
+              className="
+        absolute left-4 top-1/2 -translate-y-1/2 
+        flex items-center justify-center
+        h-14 w-14 rounded-full
+        bg-black/50 hover:bg-black/70 
+        border border-white/70
+        shadow-xl
+        backdrop-blur-lg
+        transition-all
+        hover:scale-110
+      "
               onClick={() => setCurrentIndex((i) => (i - 1 + images.length) % images.length)}
             >
-              <ChevronLeft className="h-8 w-8" />
-            </Button>
+              <ChevronLeft className="h-10 w-10 text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]" />
+            </button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/20 hover:bg-white/40 backdrop-blur text-white"
+            {/* Right Arrow */}
+            <button
+              className="
+        absolute right-4 top-1/2 -translate-y-1/2 
+        flex items-center justify-center
+        h-14 w-14 rounded-full
+        bg-black/50 hover:bg-black/70 
+        border border-white/70
+        shadow-xl
+        backdrop-blur-lg
+        transition-all
+        hover:scale-110
+      "
               onClick={() => setCurrentIndex((i) => (i + 1) % images.length)}
             >
-              <ChevronRight className="h-8 w-8" />
-            </Button>
-
+              <ChevronRight className="h-10 w-10 text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]" />
+            </button>
             {/* Dots indicator */}
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
               {images.map((_, i) => (
