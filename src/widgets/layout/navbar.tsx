@@ -1,3 +1,4 @@
+// src/widgets/layout/navbar.tsx
 "use client"
 
 import Link from "next/link"
@@ -172,7 +173,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                
+
                 {/* Mobile Auth Section */}
                 <div className="mt-4 pt-4 border-t">
                   {isAuthenticated ? (
@@ -194,8 +195,8 @@ export function Navbar() {
                         <Link href="/my-coupons" className="block text-sm hover:text-primary">
                           Phiếu Của Tôi
                         </Link>
-                        <button 
-                          onClick={handleLogout} 
+                        <button
+                          onClick={handleLogout}
                           className="block text-sm text-destructive hover:text-destructive/80"
                         >
                           Đăng Xuất

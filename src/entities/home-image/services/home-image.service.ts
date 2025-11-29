@@ -1,9 +1,9 @@
 // src/entities/home-image/services/home-image.service.ts
-import { apiClient } from "@/src/core/lib/api-client";
+import apiClient from "@/src/core/lib/api-client";
+import { env } from "@/src/core/config/env";
 import type { HomeImageItem, HomeImageListResponse } from "../types/home-image";
 
 export const homeImageService = {
-    // Lấy danh sách ảnh từ kho chung (có phân trang, search, filter...)
     getList: async (params?: {
         page?: number;
         pageSize?: number;
@@ -13,16 +13,18 @@ export const homeImageService = {
         sortBy?: string;
         isAscending?: boolean;
     }): Promise<HomeImageListResponse> => {
-        // Dùng paginate vì backend trả PaginateResult trực tiếp
-        const result = await apiClient.paginate<HomeImageItem>("/home-images", {
-            page: params?.page ?? 1,
-            pageSize: params?.pageSize ?? 20,
-            search: params?.search,
-            animeSeriesId: params?.animeSeriesId,
-            hasAnimeSeries: params?.hasAnimeSeries,
-            sortBy: params?.sortBy ?? "createdAt",
-            isAscending: params?.isAscending ?? false,
-        });
+        const result = await apiClient.paginate<HomeImageItem>(
+            env.ENDPOINTS.HOME_IMAGE.LIIST,
+            {
+                page: params?.page ?? 1,
+                pageSize: params?.pageSize ?? 20,
+                search: params?.search,
+                animeSeriesId: params?.animeSeriesId,
+                hasAnimeSeries: params?.hasAnimeSeries,
+                sortBy: params?.sortBy ?? "createdAt",
+                isAscending: params?.isAscending ?? false,
+            }
+        );
 
         if (!result.isSuccess) {
             console.error("Lỗi khi lấy danh sách HomeImage:", result.errors);
@@ -37,7 +39,6 @@ export const homeImageService = {
         };
     },
 
-    // Dùng riêng cho Hero Banner: lấy 3 ảnh mới nhất
     getLatestForBanner: async (): Promise<HomeImageItem[]> => {
         const result = await homeImageService.getList({
             page: 1,
@@ -45,6 +46,7 @@ export const homeImageService = {
             sortBy: "createdAt",
             isAscending: false,
         });
+
         return result.items;
     },
 };
