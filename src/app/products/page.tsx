@@ -1,27 +1,30 @@
-//src/app/products/page.tsx
+// src/app/products/page.tsx
 'use client';
 
 import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Button } from '@/src/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/src/components/ui/select';
 import { Input } from '@/src/components/ui/input';
-import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Pagination } from '@/src/components/ui/pagination';
 import { useDebounce } from 'use-debounce';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AsyncSelect } from '@/src/shared/ui/selects/async-select';
 import { useCategorySelectStore } from '@/src/entities/categories/services/category-select-service';
-import { categoryService } from '@/src/entities/categories/services/category.service';
 
 import type { Product } from '@/src/shared/types';
 import ProductCardSkeleton from '@/src/features/product/product-card-skeleton';
 import { useCartStore } from '@/src/entities/cart/service';
 import { useToast } from '@/src/hooks/use-toast';
+
+// THÊM IMPORT CHO BLOG CAROUSEL
+import LatestBlogCategory from '@/src/features/blog-post/components/latestBlogCategory';
+import { blogService } from '@/src/features/blog-post/services/blog.service';
+import { BlogPostItem } from '@/src/features/blog-post/types/blog';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -30,7 +33,7 @@ export default function ProductsPage() {
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
-  const [debouncedSearch] = useDebounce(searchQuery, 0);
+  const [debouncedSearch] = useDebounce(searchQuery, 500);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [priceRange, setPriceRange] = useState(searchParams.get('price') || 'all');
   const [category, setCategory] = useState(searchParams.get('cat') || 'all');
@@ -39,11 +42,11 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
   const itemsPerPage = 12;
 
-  const [inputPage, setInputPage] = useState<number | "">(currentPage);
-
   const { fetchOptions: fetchCategories, options: categories, isLoading: categoriesLoading, error: categoriesError } =
     useCategorySelectStore();
-  // categoryService.getCategorySelectList();
+
+  // STATE CHO CÁC BÀI VIẾT NỔI BẬT
+  const [latestPosts, setLatestPosts] = useState<BlogPostItem[]>([]);
 
   const handleAddToCart = async (product: Product) => {
     const result = await addToCart({ productId: product.id, quantity: 1 });
@@ -68,20 +71,25 @@ export default function ProductsPage() {
     });
   };
 
+  // FETCH CÁC BÀI VIẾT NỔI BẬT
   useEffect(() => {
-    setInputPage(currentPage);
-  }, [currentPage]);
+    blogService
+      .getLatestByCategory()
+      .then(setLatestPosts)
+      .catch((err) => {
+        console.error('Lỗi khi tải bài viết nổi bật:', err);
+      });
+  }, []);
 
   useEffect(() => {
     if (categories.length === 0) {
       fetchCategories('');
     }
-  }, []);
+  }, [categories.length, fetchCategories]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [currentPage]);
-
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -116,9 +124,16 @@ export default function ProductsPage() {
       discount: undefined,
       categoryId: item.categoryId,
       category: item.category
-        ? { id: item.category.id, name: item.category.name, slug: item.category.name.toLowerCase().replace(/\s+/g, '-'), description: item.category.description }
+        ? {
+          id: item.category.id,
+          name: item.category.name,
+          slug: item.category.name.toLowerCase().replace(/\s+/g, '-'),
+          description: item.category.description,
+        }
         : undefined,
-      images: item.primaryImage ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }] : [],
+      images: item.primaryImage
+        ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }]
+        : [],
       stock: item.stockQuantity,
       isPreOrder: item.isPreOrder || false,
       tags: [],
@@ -131,18 +146,11 @@ export default function ProductsPage() {
 
   return (
     <MainLayout>
-      <div className="relative overflow-hidden mb-8">
-        <Image src="/cuoc-thi-anh-banner.png" alt="Cuộc thi ảnh Sakura Cosplay Festival" width={1200} height={300} className="w-full h-auto object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-purple-500/20" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <Link href="/awards">
-            <Button size="lg" className="bg-pink-600 hover:bg-pink-700 text-white font-bold px-8 py-3 rounded-full shadow-lg">
-              Tham gia Cuộc thi Sakura Cosplay Festival
-            </Button>
-          </Link>
-        </div>
-      </div>
 
+      {/* THAY BANNER CŨ BẰNG CAROUSEL BÀI VIẾT NỔI BẬT */}
+      {latestPosts.length > 0 && <LatestBlogCategory posts={latestPosts} />}
+
+      {/* PHẦN DANH SÁCH SẢN PHẨM */}
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           {(animeTitle || debouncedSearch) && (
@@ -151,7 +159,13 @@ export default function ProductsPage() {
             </h1>
           )}
           <div className="relative">
-            <Input type="text" placeholder="Tìm kiếm sản phẩm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="h-12 pl-10" />
+            <Input
+              type="text"
+              placeholder="Tìm kiếm sản phẩm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-12 pl-10"
+            />
             <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
@@ -172,7 +186,9 @@ export default function ProductsPage() {
           </Button>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[180px] bg-transparent"><SelectValue placeholder="Liên quan" /></SelectTrigger>
+            <SelectTrigger className="w-[180px] bg-transparent">
+              <SelectValue placeholder="Liên quan" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="newest">Mới nhất</SelectItem>
               <SelectItem value="price-asc">Giá tăng dần</SelectItem>
@@ -183,7 +199,9 @@ export default function ProductsPage() {
           </Select>
 
           <Select value={priceRange} onValueChange={setPriceRange}>
-            <SelectTrigger className="w-[180px] bg-transparent"><SelectValue placeholder="Giá" /></SelectTrigger>
+            <SelectTrigger className="w-[180px] bg-transparent">
+              <SelectValue placeholder="Giá" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả</SelectItem>
               <SelectItem value="under-500k">Dưới 500k</SelectItem>
@@ -206,16 +224,13 @@ export default function ProductsPage() {
           {categoriesError && <p className="text-sm text-red-600">{categoriesError}</p>}
 
           <div className="ml-auto">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
+            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
           </div>
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {loading && Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
+          {loading &&
+            Array.from({ length: itemsPerPage }).map((_, i) => <ProductCardSkeleton key={i} />)}
           {error && <p className="text-red-500">{error}</p>}
           {products.map((product) => (
             <ProductCard
@@ -227,12 +242,7 @@ export default function ProductsPage() {
           ))}
         </div>
 
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          className="mt-8"
-        />
+        <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} className="mt-8" />
       </div>
     </MainLayout>
   );
