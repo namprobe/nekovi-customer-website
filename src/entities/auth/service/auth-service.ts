@@ -17,6 +17,7 @@ import type {
   UpdateProfileRequest
 } from "../type/auth"
 import { GrantTypeEnum } from "@/src/shared/types/common"
+import { useCartStore } from "@/src/entities/cart/service"
 
 // Init State - Default values khi app khởi động
 const initialState = {
@@ -135,6 +136,14 @@ export const useAuthStore = create<AuthState>()(
 
               await get().getProfile()
 
+              if (typeof window !== "undefined") {
+                try {
+                  await useCartStore.getState().fetchCart({ page: 1, pageSize: 3 })
+                } catch (cartError) {
+                  console.warn("Unable to prefetch cart after login:", cartError)
+                }
+              }
+
               // Schedule automatic token refresh
               scheduleTokenRefresh(authData.expiresAt, get().refreshToken, get().logout)
 
@@ -169,6 +178,9 @@ export const useAuthStore = create<AuthState>()(
             // Clear refresh timer
             clearRefreshTimer()
             apiClient.clearToken()
+            if (typeof window !== "undefined") {
+              useCartStore.getState().clearCartState()
+            }
             set(initialState)
           }
         },

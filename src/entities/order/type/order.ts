@@ -3,7 +3,7 @@
 export interface PlaceOrderRequest {
   productId?: string | null
   quantity?: number | null
-  couponCode?: string | null
+  userCouponId?: string | null
   paymentMethodId: string
   isOneClick?: boolean
   guestEmail?: string | null
@@ -41,24 +41,92 @@ export interface OrderFilter {
   hasCoupon?: boolean
 }
 
-export interface OrderListItem {
+// CustomerOrderItemDTO
+export interface CustomerOrderItem {
   id: string
-  userId?: string | null
-  isOneClick: boolean
-  guestEmail?: string | null
-  guestFirstName?: string | null
-  guestLastName?: string | null
-  guestPhone?: string | null
-  oneClickAddress?: string | null
-  totalAmount: number
+  orderId: string
+  productId: string
+  productName: string
+  productImage?: string | null
+  quantity: number
+  unitPrice: number
   discountAmount: number
-  taxAmount: number
-  shippingAmount: number
+  itemTotal: number
+  createdAt?: string | null
+  updatedAt?: string | null
+}
+
+// CustomerOrderDetailItemDto extends CustomerOrderItem
+export interface CustomerOrderDetailItem extends CustomerOrderItem {
+  categoryName: string
+  animeSeriesName?: string | null
+  isPreOrder: boolean
+  preOrderReleaseDate?: string | null
+}
+
+// CustomerOrderPaymentDto
+export interface CustomerOrderPayment {
+  paymentId: string
+  paymentMethodId: string
+  paymentMethodName: string
+  amount: number
+  paymentStatus: number
+  transactionNo?: string | null
+  paymentDate?: string | null
+}
+
+// CustomerOrderListItem
+export interface CustomerOrderListItem {
+  id: string
+  isOneClick: boolean
+  totalAmount: number
   finalAmount: number
   paymentStatus: number
   orderStatus: number
-  notes?: string | null
-  createdAt: string
+  items: CustomerOrderItem[]
+  createdAt?: string | null
   updatedAt?: string | null
+}
+
+// CustomerOrderDetailDto extends CustomerOrderListItem
+export interface CustomerOrderDetailDto extends CustomerOrderListItem {
+  discountAmount: number
+  payment?: CustomerOrderPayment | null
+  items: CustomerOrderDetailItem[]
+}
+
+// Pagination response
+export interface PaginationResult<T> {
+  items: T[]
+  totalItems: number
+  currentPage: number
+  totalPages: number
+  pageSize: number
+}
+
+// Order State
+export interface OrderState {
+  // List state
+  orderList: CustomerOrderListItem[] | null
+  orderListLoading: boolean
+  orderListError: string | null
+  orderListPagination: {
+    totalItems: number
+    currentPage: number
+    totalPages: number
+    pageSize: number
+  } | null
+
+  // Detail state
+  orderDetail: CustomerOrderDetailDto | null
+  orderDetailLoading: boolean
+  orderDetailError: string | null
+
+  // Actions
+  fetchOrderList: (filter?: OrderFilter) => Promise<void>
+  fetchOrderDetail: (orderId: string) => Promise<void>
+  clearOrderList: () => void
+  clearOrderDetail: () => void
+  clearError: () => void
 }
 

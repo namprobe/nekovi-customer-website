@@ -33,27 +33,43 @@ export function CartPopup() {
   
   const [isOpen, setIsOpen] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const cartFetchedRef = useRef(false)
+  const popupFetchedRef = useRef(false)
 
-  // Fetch cart when popup opens
+  // Fetch cart when popup opens (only if cart is not already loaded or needs refresh)
   useEffect(() => {
-    if (isOpen && isAuthenticated && !cartFetchedRef.current) {
-      cartFetchedRef.current = true
+    if (isOpen && isAuthenticated) {
+      // If cart is already loaded with data, use it
+      // Only fetch if cart is null or if we need a different page
+      const hasCartData = cart && cart.cartItems.length > 0
+      const needsFetch = !hasCartData || (currentPage > 1 && !popupFetchedRef.current)
+
+      if (needsFetch && !popupFetchedRef.current) {
+        popupFetchedRef.current = true
       fetchCart({ page: currentPage, pageSize: ITEMS_PER_PAGE })
     }
-  }, [isOpen, isAuthenticated, currentPage, fetchCart])
+    }
+  }, [isOpen, isAuthenticated, currentPage, fetchCart, cart])
 
   // Reset fetch ref when popup closes
   useEffect(() => {
     if (!isOpen) {
-      cartFetchedRef.current = false
+      popupFetchedRef.current = false
       setCurrentPage(1)
     }
   }, [isOpen])
 
+  // Close popup and reset when user logs out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setIsOpen(false)
+      popupFetchedRef.current = false
+      setCurrentPage(1)
+    }
+  }, [isAuthenticated])
+
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
-    cartFetchedRef.current = false
+    popupFetchedRef.current = false
     fetchCart({ page, pageSize: ITEMS_PER_PAGE })
   }
 
@@ -64,7 +80,8 @@ export function CartPopup() {
         title: "Thành công",
         description: "Đã xóa sản phẩm khỏi giỏ hàng",
       })
-      cartFetchedRef.current = false
+      // Cart will be refreshed automatically by deleteCartItem action
+      popupFetchedRef.current = false
     } else {
       toast({
         title: "Lỗi",
@@ -75,8 +92,10 @@ export function CartPopup() {
   }
 
   const totalItems = cart?.totalItems || 0
-  const displayedItems = cart?.cartItems || []
-  const remainingItems = Math.max(0, totalItems - ITEMS_PER_PAGE)
+  // Always limit popup display to first ITEMS_PER_PAGE items,
+  // even if global cart state was loaded with a larger pageSize elsewhere
+  const displayedItems = cart?.cartItems?.slice(0, ITEMS_PER_PAGE) || []
+  const remainingItems = Math.max(0, totalItems - displayedItems.length)
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
   return (

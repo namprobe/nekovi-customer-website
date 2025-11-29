@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/src/core/providers/auth-provider"
 import { AuthGuard } from "@/src/components/auth/auth-guard"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
@@ -12,9 +13,20 @@ import { ChangePasswordForm } from "@/src/features/profile/components/ChangePass
 import { UserAddressManager } from "@/src/features/profile/components/UserAddressManager"
 import { User, Lock, MapPin } from "lucide-react"
 
+const TAB_KEYS = ["profile", "addresses", "security"] as const
+type TabKey = (typeof TAB_KEYS)[number]
+
+const isValidTab = (value: string | null): value is TabKey => {
+  if (!value) return false
+  return (TAB_KEYS as readonly string[]).includes(value)
+}
+
 function ProfilePageContent() {
   const { user, getProfile, isAuthenticated, isHydrated } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const profileFetchedRef = useRef(false)
+  const [activeTab, setActiveTab] = useState<TabKey>("profile")
 
   // Always load profile when accessing profile page
   useEffect(() => {
@@ -44,6 +56,25 @@ function ProfilePageContent() {
     return () => window.removeEventListener('profile-updated', handleProfileUpdate)
   }, [getProfile])
 
+  // Sync tab with query param
+  useEffect(() => {
+    const tabParam = searchParams.get("tab")
+    if (isValidTab(tabParam) && tabParam !== activeTab) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams, activeTab])
+
+  const handleTabChange = useCallback(
+    (value: string) => {
+      if (!isValidTab(value)) return
+      setActiveTab(value)
+      const params = new URLSearchParams(searchParams.toString())
+      params.set("tab", value)
+      router.replace(`?${params.toString()}`, { scroll: false })
+    },
+    [router, searchParams]
+  )
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-12">
@@ -53,7 +84,7 @@ function ProfilePageContent() {
 
         <div className="mx-auto max-w-7xl">
           {/* Tabs for different sections */}
-          <Tabs defaultValue="profile" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 lg:w-auto">
               <TabsTrigger value="profile" className="gap-2">
                 <User className="h-4 w-4" />

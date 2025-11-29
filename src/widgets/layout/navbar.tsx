@@ -7,6 +7,7 @@ import { Button } from "@/src/components/ui/button"
 import { Input } from "@/src/components/ui/input"
 import { ThemeToggle } from "./theme-toggle"
 import { useAuth } from "@/src/core/providers/auth-provider"
+import { useCartStore } from "@/src/entities/cart/service"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import {
@@ -18,13 +19,20 @@ import {
 } from "@/src/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
 import { CartPopup } from "@/src/widgets/cart/cart-popup"
+import { WishlistPopup } from "@/src/widgets/wishlist/wishlist-popup"
+import { useWishlistStore } from "@/src/entities/wishlist/service"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
+  const { clearCartState } = useCartStore()
+  const { clearWishlistState } = useWishlistStore()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   const handleLogout = async () => {
+    // Clear cart and wishlist immediately before logout
+    clearCartState()
+    clearWishlistState()
     await logout()
     router.push("/login")
   }
@@ -32,6 +40,7 @@ export function Navbar() {
   const navLinks = [
     { href: "/anime", label: "Anime" },
     { href: "/products", label: "Sản Phẩm" },
+    { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
     { href: "/awards", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },
@@ -92,6 +101,9 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <ThemeToggle />
 
+          {/* Wishlist Popup */}
+          <WishlistPopup />
+
           {/* Cart Popup */}
           <CartPopup />
 
@@ -117,6 +129,9 @@ export function Navbar() {
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/wishlist">Yêu Thích</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-coupons">Phiếu Của Tôi</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
@@ -175,6 +190,9 @@ export function Navbar() {
                         </Link>
                         <Link href="/wishlist" className="block text-sm hover:text-primary">
                           Yêu Thích
+                        </Link>
+                        <Link href="/my-coupons" className="block text-sm hover:text-primary">
+                          Phiếu Của Tôi
                         </Link>
                         <button 
                           onClick={handleLogout} 

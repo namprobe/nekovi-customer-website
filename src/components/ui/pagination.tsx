@@ -75,6 +75,7 @@ export function Pagination({
       aria-label="Pagination"
     >
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={handlePrevious}
@@ -101,6 +102,7 @@ export function Pagination({
           return (
             <Button
               key={page}
+              type="button"
               variant={currentPage === page ? "default" : "outline"}
               size="sm"
               onClick={() => onPageChange(page as number)}
@@ -116,6 +118,7 @@ export function Pagination({
       </div>
 
       <Button
+        type="button"
         variant="outline"
         size="sm"
         onClick={handleNext}

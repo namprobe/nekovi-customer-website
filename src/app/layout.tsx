@@ -6,6 +6,7 @@ import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { AuthProvider } from "@/src/core/providers/auth-provider"
 import { CartProvider } from "@/src/core/providers/cart-provider"
+import { WishlistProvider } from "@/src/core/providers/wishlist-provider"
 import { Toaster } from "@/src/components/ui/toaster"
 import { Suspense } from "react"
 
@@ -25,7 +26,9 @@ export default function RootLayout({
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <Suspense fallback={null}>
           <AuthProvider>
-            <CartProvider>{children}</CartProvider>
+            <CartProvider>
+              <WishlistProvider>{children}</WishlistProvider>
+            </CartProvider>
           </AuthProvider>
         </Suspense>
         <Toaster />

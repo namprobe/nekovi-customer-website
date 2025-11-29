@@ -55,11 +55,24 @@ export const env = {
         USER_ADDRESS: {
             BASE: `/user-addresses`,
         },
+        USER_COUPON: {
+            BASE: `/user-coupons`,
+        },
         CART: {
             BASE: `/cart`,
             UPDATE_ITEM: (cartItemId: string) => `/cart/${cartItemId}`,
             DELETE_ITEM: (cartItemId: string) => `/cart/${cartItemId}`,
             CLEAR: `/cart/clear`,
+        },
+        WISHLIST: {
+            BASE: `/wishlist`,
+            CREATE: `/wishlist`,
+            REMOVE_ITEM: (productId: string) => `/wishlist/${productId}`,
+        },
+        COUPON: {
+            AVAILABLE: `/coupons/available`,
+            MY_COUPONS: `/user-coupons`,
+            COLLECT: `/coupons/collect`,
         },
         BLOG: {
             LIST: `/blog-posts`,
@@ -72,6 +85,7 @@ export const env = {
         ORDER: {
             PLACE: `/orders`,
             LIST: `/orders`,
+            DETAIL: (id: string) => `/orders/${id}`,
         },
         PAYMENT_METHOD: {
             LIST: `/payment-methods`,

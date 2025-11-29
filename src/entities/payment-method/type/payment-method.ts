@@ -16,6 +16,7 @@ export interface PaymentMethodItem {
   id: string
   name: string
   description?: string | null
+  iconPath?: string | null
   isOnlinePayment: boolean
   status: EntityStatusEnum
   createdAt: string

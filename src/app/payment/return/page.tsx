@@ -7,8 +7,18 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { Button } from "@/src/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui/card"
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react"
+import { CheckCircle2, XCircle, Loader2, Package, User, Receipt, Calendar } from "lucide-react"
 import { useCartStore } from "@/src/entities/cart/service"
+import { formatDateTime, formatCurrency as formatCurrencyUtil } from "@/src/shared/utils/format"
+
+interface PaymentMetadata {
+  CustomerName?: string
+  ProductNames?: string
+  TotalAmount?: string
+  FinalAmount?: string
+  OrderId?: string
+  CreatedAt?: string
+}
 
 function PaymentReturnContent() {
   const router = useRouter()
@@ -16,6 +26,26 @@ function PaymentReturnContent() {
   const { fetchCart } = useCartStore()
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading")
   const [message, setMessage] = useState("")
+  const [metadata, setMetadata] = useState<PaymentMetadata | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
+  const [amount, setAmount] = useState<string | null>(null)
+
+  // Helper function to decode Base64 and parse JSON from extraData
+  const decodeExtraData = (extraData: string | null): PaymentMetadata | null => {
+    if (!extraData) return null
+    
+    try {
+      // Decode Base64
+      const decodedString = atob(extraData)
+      // Parse JSON
+      const parsed = JSON.parse(decodedString) as PaymentMetadata
+      return parsed
+    } catch (error) {
+      console.error("Error decoding extraData:", error)
+      return null
+    }
+  }
+
 
   useEffect(() => {
     const processPaymentReturn = async () => {
@@ -26,9 +56,23 @@ function PaymentReturnContent() {
           // MoMo redirect parameters
           const resultCode = searchParams.get("resultCode")
           const message = searchParams.get("message")
-          const orderId = searchParams.get("orderId")
+          const orderIdParam = searchParams.get("orderId")
           const transId = searchParams.get("transId")
-          const amount = searchParams.get("amount")
+          const amountParam = searchParams.get("amount")
+          const extraData = searchParams.get("extraData")
+
+          // Decode metadata from extraData
+          const decodedMetadata = decodeExtraData(extraData)
+          if (decodedMetadata) {
+            setMetadata(decodedMetadata)
+            // Use OrderId from metadata if available, otherwise use from query params
+            setOrderId(decodedMetadata.OrderId || orderIdParam)
+            // Use FinalAmount from metadata if available, otherwise use amount from query params
+            setAmount(decodedMetadata.FinalAmount || amountParam)
+          } else {
+            setOrderId(orderIdParam)
+            setAmount(amountParam)
+          }
 
           // MoMo: resultCode = 0 means success
           const isSuccess = resultCode === "0"
@@ -53,6 +97,13 @@ function PaymentReturnContent() {
           const vnp_TransactionNo = searchParams.get("vnp_TransactionNo")
           const vnp_Amount = searchParams.get("vnp_Amount")
           const vnp_OrderInfo = searchParams.get("vnp_OrderInfo")
+
+          setOrderId(vnp_TxnRef)
+          if (vnp_Amount) {
+            // VNPay amount is in cents, convert to VND
+            const amountInVnd = parseFloat(vnp_Amount) / 100
+            setAmount(amountInVnd.toString())
+          }
 
           // Check payment result
           const isSuccess = vnp_ResponseCode === "00" && vnp_TransactionStatus === "00"
@@ -105,7 +156,87 @@ function PaymentReturnContent() {
             <CardContent className="space-y-4">
               {status !== "loading" && (
                 <>
-                  <div className="flex gap-4 justify-center">
+                  {/* Payment Details Section */}
+                  {(metadata || orderId || amount) && (
+                    <div className="border-t pt-4 space-y-3">
+                      <h3 className="font-semibold text-lg mb-3">Chi tiết đơn hàng</h3>
+                      
+                      {orderId && (
+                        <div className="flex items-start gap-3">
+                          <Receipt className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">Mã đơn hàng</p>
+                            <p className="font-medium">{orderId}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {metadata?.CustomerName && (
+                        <div className="flex items-start gap-3">
+                          <User className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">Khách hàng</p>
+                            <p className="font-medium">{metadata.CustomerName}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {metadata?.ProductNames && (
+                        <div className="flex items-start gap-3">
+                          <Package className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">Sản phẩm</p>
+                            <p className="font-medium">{metadata.ProductNames}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {metadata?.CreatedAt && (
+                        <div className="flex items-start gap-3">
+                          <Calendar className="h-5 w-5 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-sm text-muted-foreground">Ngày đặt hàng</p>
+                            <p className="font-medium">{formatDateTime(metadata.CreatedAt)}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {metadata?.TotalAmount && metadata?.FinalAmount && (
+                        <div className="space-y-2 pt-2 border-t">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Tổng tiền:</span>
+                            <span>{formatCurrencyUtil(metadata.TotalAmount)}</span>
+                          </div>
+                          {parseFloat(metadata.TotalAmount.replace(/,/g, "")) > parseFloat(metadata.FinalAmount.replace(/,/g, "")) && (
+                            <div className="flex justify-between text-sm text-green-600">
+                              <span>Giảm giá:</span>
+                              <span>
+                                -{formatCurrencyUtil(
+                                  (
+                                    parseFloat(metadata.TotalAmount.replace(/,/g, "")) -
+                                    parseFloat(metadata.FinalAmount.replace(/,/g, ""))
+                                  ).toString()
+                                )}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between font-semibold pt-2 border-t">
+                            <span>Thành tiền:</span>
+                            <span className="text-primary">{formatCurrencyUtil(metadata.FinalAmount)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {!metadata?.FinalAmount && amount && (
+                        <div className="flex justify-between font-semibold pt-2 border-t">
+                          <span>Thành tiền:</span>
+                          <span className="text-primary">{formatCurrencyUtil(amount)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 justify-center pt-4">
                     <Button onClick={() => router.push("/orders")} variant="default">
                       Xem đơn hàng
                     </Button>

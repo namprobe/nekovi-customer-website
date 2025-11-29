@@ -6,11 +6,13 @@ import { useParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { Button } from '@/src/components/ui/button';
 import { useCartStore } from '@/src/entities/cart/service';
+import { useWishlistStore } from '@/src/entities/wishlist/service';
 import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Badge } from '@/src/components/ui/badge';
-import { Star, ArrowLeft } from 'lucide-react';
+import { Star, ArrowLeft, Heart } from 'lucide-react';
+import { useAuth } from '@/src/core/providers/auth-provider';
 import { useProductDetail } from '@/src/features/product/hooks/use-product-detail';
 import { Product } from '@/src/shared/types';
 import { productService } from '@/src/entities/product/service/product-service';
@@ -22,6 +24,8 @@ export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { addToCart } = useCartStore();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   // === PRODUCT DETAIL ===
@@ -216,6 +220,67 @@ export default function ProductDetailPage() {
     }
   };
 
+  const handleToggleWishlist = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để thêm vào danh sách yêu thích",
+        variant: "destructive",
+      });
+      router.push("/login");
+      return;
+    }
+
+    const isInList = isInWishlist(mappedProduct.id);
+    
+    if (isInList) {
+      const result = await removeFromWishlist(mappedProduct.id);
+      if (result.success) {
+        toast({
+          title: "Đã xóa",
+          description: `${mappedProduct.name} đã được xóa khỏi danh sách yêu thích`,
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: result.error || "Không thể xóa khỏi danh sách yêu thích",
+          variant: "destructive",
+        });
+      }
+    } else {
+      const result = await addToWishlist({ productId: mappedProduct.id });
+      if (result.success) {
+        toast({
+          title: "Đã thêm",
+          description: `${mappedProduct.name} đã được thêm vào danh sách yêu thích`,
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: result.error || "Không thể thêm vào danh sách yêu thích",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  // Add to cart for related products (always quantity = 1, không ảnh hưởng quantity đang chọn của sản phẩm chính)
+  const handleAddRelatedToCart = async (product: Product) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({
+        title: "Thành công",
+        description: `${product.name} đã thêm vào giỏ hàng`,
+      });
+    } else {
+      toast({
+        title: "Lỗi",
+        description: result.error || "Không thể thêm vào giỏ",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <MainLayout>
       <div className="container mx-auto px-4 py-8">
@@ -301,10 +366,35 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="flex gap-4">
-              <Button onClick={handleAddToCart} disabled={mappedProduct.stock === 0} size="lg" className="flex-1">
+              <Button
+                onClick={handleAddToCart}
+                disabled={mappedProduct.stock === 0}
+                size="lg"
+                className="flex-1"
+              >
                 Thêm vào giỏ hàng
               </Button>
-              <Button onClick={() => { handleAddToCart(); router.push('/cart'); }} disabled={mappedProduct.stock === 0} variant="outline" size="lg" className="flex-1">
+              <Button
+                onClick={handleToggleWishlist}
+                variant="outline"
+                size="lg"
+                className="px-4"
+                aria-label={isInWishlist(mappedProduct.id) ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+              >
+                <Heart 
+                  className={`h-5 w-5 ${isInWishlist(mappedProduct.id) ? 'fill-red-500 text-red-500' : ''}`}
+                />
+              </Button>
+              <Button
+                onClick={() => {
+                  // Mua ngay: không ảnh hưởng đến cart, chuyển sang checkout với productId & quantity
+                  router.push(`/checkout?productId=${mappedProduct.id}&quantity=${quantity}`);
+                }}
+                disabled={mappedProduct.stock === 0}
+                variant="outline"
+                size="lg"
+                className="flex-1"
+              >
                 Mua ngay
               </Button>
             </div>
@@ -364,7 +454,17 @@ export default function ProductDetailPage() {
             <h2 className="text-2xl font-bold mb-6">Sản phẩm tương tự</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
               {relatedProducts.map(p => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  onAddToCart={handleAddRelatedToCart}
+                  onAddToWishlist={(prod) =>
+                    toast({
+                      title: "Đã thêm vào yêu thích",
+                      description: `${prod.name} đã được thêm vào danh sách yêu thích`,
+                    })
+                  }
+                />
               ))}
             </div>
           </section>

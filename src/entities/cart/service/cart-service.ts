@@ -184,6 +184,15 @@ export const useCartStore = create<CartState>()(
         }
       },
 
+      // Clear cart state (without API call - for logout/unauthorized)
+      clearCartState: () => {
+        set({
+          cart: null,
+          isLoading: false,
+          error: null,
+        })
+      },
+
       // Clear error
       clearError: () => {
         set({ error: null })
