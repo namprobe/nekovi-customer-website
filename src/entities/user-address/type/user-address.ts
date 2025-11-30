@@ -16,10 +16,13 @@ export interface UserAddressRequest {
   addressType: AddressTypeEnum
   fullName: string
   address: string
-  city: string
-  state?: string
-  postalCode: string
-  country: string
+  provinceId: number
+  provinceName: string
+  districtId: number
+  districtName: string
+  wardCode: string
+  wardName: string
+  postalCode?: string
   isDefault: boolean
   phoneNumber?: string
   status: EntityStatusEnum
@@ -35,6 +38,9 @@ export interface UserAddressFilter {
   userId?: string
   addressType?: AddressTypeEnum
   status?: EntityStatusEnum
+  provinceId?: number
+  districtId?: number
+  wardCode?: string
 }
 
 // ========== Response Types ==========
@@ -42,7 +48,15 @@ export interface UserAddressFilter {
 export interface UserAddressItem {
   id: string
   fullName: string
-  fullAddress: string  // Concatenated address from backend
+  address: string
+  fullAddress: string
+  provinceId?: number
+  provinceName?: string
+  districtId?: number
+  districtName?: string
+  wardCode?: string
+  wardName?: string
+  postalCode?: string
   isDefault: boolean
   phoneNumber?: string
   status: EntityStatusEnum
@@ -56,10 +70,13 @@ export interface UserAddressDetail {
   fullName: string
   addressType: AddressTypeEnum
   address: string
-  city: string
-  state?: string
-  postalCode: string
-  country: string
+  provinceId?: number
+  provinceName?: string
+  districtId?: number
+  districtName?: string
+  wardCode?: string
+  wardName?: string
+  postalCode?: string
   isDefault: boolean
   phoneNumber?: string
   status: EntityStatusEnum
