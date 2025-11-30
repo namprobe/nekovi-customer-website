@@ -24,7 +24,7 @@ const nextConfig = {
       {
         // Ngrok public URL for backend file storage (product images, etc.)
         protocol: 'https',
-        hostname: 'ddc6b54bc912.ngrok-free.app',
+        hostname: 'cef32c66eaff.ngrok-free.app',
         port: '',
         pathname: '/uploads/**',
       },
