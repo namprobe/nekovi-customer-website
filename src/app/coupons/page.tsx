@@ -57,9 +57,13 @@ export default function CouponsPage() {
     }
   }
 
-  const getDiscountText = (discountType: string, discountValue: number) => {
+  const getDiscountText = (discountType: string, discountValue: number, maxDiscountCap?: number | null) => {
     if (discountType === 'Percentage') {
-      return `${discountValue}%`
+      const text = `${discountValue}%`
+      if (maxDiscountCap && maxDiscountCap > 0) {
+        return `${text} (tối đa ${formatCurrency(maxDiscountCap)})`
+      }
+      return text
     }
     return formatCurrency(discountValue)
   }
@@ -164,7 +168,7 @@ export default function CouponsPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="text-2xl font-bold text-primary mb-2">
-                          {getDiscountText(coupon.discountType, coupon.discountValue)}
+                          {getDiscountText(coupon.discountType, coupon.discountValue, coupon.maxDiscountCap)}
                         </CardTitle>
                         <CardDescription className="text-sm font-mono font-semibold">
                           {coupon.code}

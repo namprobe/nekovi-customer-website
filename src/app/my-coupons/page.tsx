@@ -25,10 +25,26 @@ export default function MyCouponsPage() {
     fetchUserCoupons()
   }, [fetchUserCoupons])
 
-  const getDiscountText = (discountType: string, discountValue: number) => {
-    if (discountType === 'Percentage') {
-      return `${discountValue}%`
+  const getDiscountText = (discountType: string | number, discountValue: number, maxDiscountCap?: number | null) => {
+    // Backend trả về: "Percentage", "Fixed", "FreeShipping" (từ .ToString())
+    // Có thể nhận cả string hoặc number (enum)
+    const typeStr = String(discountType).toLowerCase().trim()
+    
+    // Check Percentage (0 hoặc "Percentage")
+    if (typeStr === 'percentage' || typeStr === '0' || discountType === 0) {
+      const text = `${discountValue}%`
+      if (maxDiscountCap && maxDiscountCap > 0) {
+        return `${text} (tối đa ${formatCurrency(maxDiscountCap)})`
+      }
+      return text
     }
+    
+    // Check FreeShipping (2 hoặc "FreeShipping")
+    if (typeStr === 'freeshipping' || typeStr === '2' || discountType === 2) {
+      return 'Miễn phí vận chuyển'
+    }
+    
+    // Default: Fixed amount (1 hoặc "Fixed" hoặc "FixedAmount")
     return formatCurrency(discountValue)
   }
 
@@ -168,7 +184,7 @@ export default function MyCouponsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-2xl font-bold text-primary mb-1">
-                            {getDiscountText(coupon.discountType, coupon.discountValue)}
+                            {getDiscountText(coupon.discountType, coupon.discountValue, coupon.maxDiscountCap)}
                           </CardTitle>
                           <CardDescription className="text-sm font-mono font-semibold">
                             {coupon.couponCode}
@@ -217,7 +233,7 @@ export default function MyCouponsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-xl font-bold text-muted-foreground mb-1">
-                            {getDiscountText(coupon.discountType, coupon.discountValue)}
+                            {getDiscountText(coupon.discountType, coupon.discountValue, coupon.maxDiscountCap)}
                           </CardTitle>
                           <CardDescription className="text-sm font-mono">
                             {coupon.couponCode}
@@ -256,7 +272,7 @@ export default function MyCouponsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-xl font-bold text-muted-foreground mb-1">
-                            {getDiscountText(coupon.discountType, coupon.discountValue)}
+                            {getDiscountText(coupon.discountType, coupon.discountValue, coupon.maxDiscountCap)}
                           </CardTitle>
                           <CardDescription className="text-sm font-mono">
                             {coupon.couponCode}

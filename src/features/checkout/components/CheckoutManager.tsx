@@ -1387,7 +1387,14 @@ export function CheckoutManager() {
                           <div key={coupon.id}>
                             <p className="font-semibold text-foreground">{coupon.couponCode}</p>
                             {coupon.description && <p>{coupon.description}</p>}
-                            <p>Loại ưu đãi: {coupon.discountTypeName}</p>
+                            <p>
+                              Loại ưu đãi:{" "}
+                              {coupon.discountType === DiscountTypeEnum.Percentage
+                                ? `${coupon.discountValue}%${coupon.maxDiscountCap && coupon.maxDiscountCap > 0 ? ` (tối đa ${formatCurrency(coupon.maxDiscountCap)})` : ""}`
+                                : coupon.discountType === DiscountTypeEnum.Fixed
+                                ? formatCurrency(coupon.discountValue)
+                                : coupon.discountTypeName}
+                            </p>
                           </div>
                         ))}
                       </div>

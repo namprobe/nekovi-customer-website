@@ -385,7 +385,7 @@ export function VoucherSelectModal({
                         {coupon.discountTypeName?.toLowerCase() === "freeshipping"
                           ? "Miễn phí vận chuyển"
                           : coupon.discountType === DiscountTypeEnum.Percentage
-                          ? `${coupon.discountValue}%`
+                          ? `${coupon.discountValue}%${coupon.maxDiscountCap && coupon.maxDiscountCap > 0 ? ` (tối đa ${formatCurrency(coupon.maxDiscountCap)})` : ""}`
                           : formatCurrency(coupon.discountValue)}
                       </span>
                       <span>Tối thiểu: {formatCurrency(coupon.minOrderAmount)}</span>
