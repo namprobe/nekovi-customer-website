@@ -1,3 +1,4 @@
+// src/core/hooks/use-auth.tsx
 "use client"
 
 import { useEffect, useCallback, useRef } from 'react'
@@ -48,7 +49,7 @@ export function useAuth() {
     const initializeAuth = useCallback(async () => {
         // Prevent multiple calls per component instance
         if (initializedRef.current) return
-        
+
         try {
             if (token) {
                 apiClient.setToken(token)

@@ -1,3 +1,4 @@
+// src/widgets/layout/navbar.tsx
 "use client"
 
 import Link from "next/link"
@@ -124,6 +125,11 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link href="/my-home-images">Ảnh Trang Chủ Của Tôi</Link>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
                 </DropdownMenuItem>
@@ -172,7 +178,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                
+
                 {/* Mobile Auth Section */}
                 <div className="mt-4 pt-4 border-t">
                   {isAuthenticated ? (
@@ -185,6 +191,9 @@ export function Navbar() {
                         <Link href="/profile" className="block text-sm hover:text-primary">
                           Hồ Sơ Của Tôi
                         </Link>
+                        <Link href="/my-home-images" className="block text-sm hover:text-primary">
+                          Ảnh Trang Chủ Của Tôi
+                        </Link>
                         <Link href="/orders" className="block text-sm hover:text-primary">
                           Đơn Hàng
                         </Link>
@@ -194,8 +203,8 @@ export function Navbar() {
                         <Link href="/my-coupons" className="block text-sm hover:text-primary">
                           Phiếu Của Tôi
                         </Link>
-                        <button 
-                          onClick={handleLogout} 
+                        <button
+                          onClick={handleLogout}
                           className="block text-sm text-destructive hover:text-destructive/80"
                         >
                           Đăng Xuất
