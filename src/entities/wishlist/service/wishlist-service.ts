@@ -132,6 +132,15 @@ export const useWishlistStore = create<WishlistState>()(
         return wishlist.items.some(item => item.productId === productId)
       },
 
+      // Clear wishlist state (without API call - for logout/unauthorized)
+      clearWishlistState: () => {
+        set({
+          wishlist: null,
+          isLoading: false,
+          error: null,
+        })
+      },
+
       // Clear error
       clearError: () => {
         set({ error: null })

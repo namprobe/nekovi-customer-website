@@ -54,5 +54,6 @@ export interface WishlistState {
   addToWishlist: (request: AddToWishlistRequest) => Promise<{ success: boolean; error?: string; errors?: string[] }>
   removeFromWishlist: (productId: string) => Promise<{ success: boolean; error?: string; errors?: string[] }>
   isInWishlist: (productId: string) => boolean
+  clearWishlistState: () => void
   clearError: () => void
 }

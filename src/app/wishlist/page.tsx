@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
 import { Card, CardContent } from "@/src/components/ui/card"
-import { Heart, ShoppingCart, Trash2, Star } from "lucide-react"
+import { Heart, ShoppingCart, Trash2, Star, Package, Calendar, Tag } from "lucide-react"
 import { AuthGuard } from "@/src/components/auth/auth-guard"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { formatCurrency } from "@/src/shared/utils/format"
@@ -63,6 +63,57 @@ export default function WishlistPage() {
 
   const wishlistItems = wishlist?.items || []
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffTime = Math.abs(now.getTime() - date.getTime())
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return "Hôm nay"
+    if (diffDays === 1) return "Hôm qua"
+    if (diffDays < 7) return `${diffDays} ngày trước`
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)} tháng trước`
+    return date.toLocaleDateString('vi-VN')
+  }
+
+  const getStockBadge = (stockQuantity: number) => {
+    if (stockQuantity === 0) {
+      return (
+  <Badge 
+    variant="outline" 
+    className="gap-1 bg-red-500 text-white  hover:bg-red-600 hover:text-white"
+  >
+    <Package className="h-3 w-3" />
+    Hết hàng
+  </Badge>
+)
+      // return <Badge variant="destructive" className="gap-1"><Package className="h-3 w-3" />Hết hàng</Badge>
+    }
+    if (stockQuantity < 10) {
+      return (
+  <Badge 
+    variant="outline" 
+    className="gap-1 bg-orange-500 text-white hover:bg-orange-600 hover:text-white"
+  >
+    <Package className="h-3 w-3" />
+    Sắp hết ({stockQuantity})
+  </Badge>
+)
+      // return <Badge variant="outline" className="gap-1 border-orange-500 text-orange-500"><Package className="h-3 w-3" />Sắp hết ({stockQuantity})</Badge>
+    }
+    return (
+  <Badge 
+    variant="outline" 
+    className="gap-1 bg-green-500 text-white hover:bg-green-600 hover:text-white"
+  >
+    <Package className="h-3 w-3" />
+    Còn hàng
+  </Badge>
+)
+    // return <Badge variant="outline" className="gap-1 border-green-500 text-green-500"><Package className="h-3 w-3" />Còn hàng</Badge>
+  }
+
   return (
     <AuthGuard>
       <MainLayout>
@@ -117,7 +168,23 @@ export default function WishlistPage() {
                 const product = item.product
 
                 return (
-                  <Card key={item.wishlistItemId} className="group relative overflow-hidden transition-all hover:shadow-lg">
+                  <Card key={item.wishlistItemId} className="group relative overflow-hidden transition-all hover:shadow-lg border-2 hover:border-primary/50">
+                    {/* Heart Badge - Always visible */}
+                    <div className="absolute top-3 right-3 z-10">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 w-8 rounded-full p-0 shadow-lg"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          handleRemove(item.productId, product.name)
+                        }}
+                        aria-label="Remove from wishlist"
+                      >
+                        <Heart className="h-4 w-4 fill-current" />
+                      </Button>
+                    </div>
+
                     <Link href={`/products/${item.productId}`}>
                       <div className="relative aspect-square overflow-hidden bg-muted">
                         <img
@@ -125,18 +192,40 @@ export default function WishlistPage() {
                           alt={product.name}
                           className="w-full h-full object-cover transition-transform group-hover:scale-105"
                         />
+                        
+                        {/* Stock Status Badge on Image */}
+                        <div className="absolute bottom-2 left-2">
+                          {getStockBadge(product.stockQuantity)}
+                        </div>
                       </div>
                     </Link>
 
-                    <CardContent className="p-4">
+                    <CardContent className="p-4 space-y-3">
+                      {/* Category and Anime Series Tags */}
+                      <div className="flex flex-wrap gap-1">
+                        {product.category && (
+                          <Badge variant="secondary" className="text-xs gap-1">
+                            <Tag className="h-3 w-3" />
+                            {product.category.name}
+                          </Badge>
+                        )}
+                        {product.animeSeries && (
+                          <Badge variant="outline" className="text-xs gap-1 border-purple-500 text-purple-600">
+                            {product.animeSeries.name}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Product Name */}
                       <Link href={`/products/${item.productId}`}>
-                        <h3 className="mb-2 line-clamp-2 text-sm font-medium hover:text-primary">
+                        <h3 className="line-clamp-2 text-base font-semibold hover:text-primary min-h-[3rem]">
                           {product.name}
                         </h3>
                       </Link>
 
-                      {product.averageRating && (
-                        <div className="mb-2 flex items-center gap-2">
+                      {/* Rating */}
+                      {product.averageRating !== undefined && product.averageRating > 0 && (
+                        <div className="flex items-center gap-2">
                           <div className="flex">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <Star
@@ -149,19 +238,27 @@ export default function WishlistPage() {
                               />
                             ))}
                           </div>
-                          <span className="text-xs text-muted-foreground">
-                            ({product.reviewCount || 0})
+                          <span className="text-sm text-muted-foreground">
+                            ({product.reviewCount || 0} đánh giá)
                           </span>
                         </div>
                       )}
 
-                      <div className="mb-3 flex items-center gap-2">
-                        <span className="text-lg font-bold text-primary">
+                      {/* Price */}
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-bold text-primary">
                           {formatCurrency(product.price)}
                         </span>
                       </div>
 
-                      <div className="flex gap-2">
+                      {/* Added Date */}
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>Đã thêm {formatDate(item.addedAt)}</span>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2 pt-2">
                         <Button
                           size="sm"
                           className="flex-1"
@@ -172,30 +269,9 @@ export default function WishlistPage() {
                           disabled={product.stockQuantity === 0}
                         >
                           <ShoppingCart className="mr-2 h-4 w-4" />
-                          Thêm vào giỏ
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            handleRemove(item.productId, product.name)
-                          }}
-                          aria-label="Remove from wishlist"
-                        >
-                          <Trash2 className="h-4 w-4" />
+                          {product.stockQuantity === 0 ? "Hết hàng" : "Thêm vào giỏ"}
                         </Button>
                       </div>
-
-                      {product.stockQuantity < 10 && product.stockQuantity > 0 && (
-                        <p className="mt-2 text-xs text-destructive">
-                          Chỉ còn {product.stockQuantity} sản phẩm
-                        </p>
-                      )}
-                      {product.stockQuantity === 0 && (
-                        <p className="mt-2 text-xs text-muted-foreground">Hết hàng</p>
-                      )}
                     </CardContent>
                   </Card>
                 )

@@ -1,3 +1,4 @@
+// src/widgets/layout/navbar.tsx
 "use client"
 
 import Link from "next/link"
@@ -20,16 +21,19 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/src/components/ui/sheet"
 import { CartPopup } from "@/src/widgets/cart/cart-popup"
 import { WishlistPopup } from "@/src/widgets/wishlist/wishlist-popup"
+import { useWishlistStore } from "@/src/entities/wishlist/service"
 
 export function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
   const { clearCartState } = useCartStore()
+  const { clearWishlistState } = useWishlistStore()
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
 
   const handleLogout = async () => {
-    // Clear cart immediately before logout
+    // Clear cart and wishlist immediately before logout
     clearCartState()
+    clearWishlistState()
     await logout()
     router.push("/login")
   }
@@ -121,11 +125,19 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
                 </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link href="/my-home-images">Ảnh Trang Chủ Của Tôi</Link>
+                </DropdownMenuItem>
+
                 <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/wishlist">Yêu Thích</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-coupons">Phiếu Của Tôi</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
@@ -166,7 +178,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                
+
                 {/* Mobile Auth Section */}
                 <div className="mt-4 pt-4 border-t">
                   {isAuthenticated ? (
@@ -179,14 +191,20 @@ export function Navbar() {
                         <Link href="/profile" className="block text-sm hover:text-primary">
                           Hồ Sơ Của Tôi
                         </Link>
+                        <Link href="/my-home-images" className="block text-sm hover:text-primary">
+                          Ảnh Trang Chủ Của Tôi
+                        </Link>
                         <Link href="/orders" className="block text-sm hover:text-primary">
                           Đơn Hàng
                         </Link>
                         <Link href="/wishlist" className="block text-sm hover:text-primary">
                           Yêu Thích
                         </Link>
-                        <button 
-                          onClick={handleLogout} 
+                        <Link href="/my-coupons" className="block text-sm hover:text-primary">
+                          Phiếu Của Tôi
+                        </Link>
+                        <button
+                          onClick={handleLogout}
                           className="block text-sm text-destructive hover:text-destructive/80"
                         >
                           Đăng Xuất

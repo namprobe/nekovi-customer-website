@@ -48,7 +48,8 @@ export const env = {
             SELECT_LIST: `/categories/select-list`,
         },
         ANIME_SERIES: {
-            SELECT_LIST: `/anime-series`,
+            LIST: `/anime-series`,
+            SELECT_LIST: `/anime-series/select-list`,
         },
         PRODUCT_REVIEW: {
             LIST: `/product-reviews`,
@@ -101,5 +102,14 @@ export const env = {
             CALCULATE_FEE: `/shipping-methods/calculate-fee`,
             LEAD_TIME: `/shipping-methods/lead-time`,
         },
+        HOME_IMAGE: {
+            LIST: `/home-images`,
+        },
+        USER_HOME_IMAGE: {
+            LIST: `/user-home-images`,
+            DETAIL: (id: string) => `/user-home-images/${id}`,
+            MY_LIST: `/user-home-images/me`,
+            SAVE_ALL: `/user-home-images/save`,
+        }
     },
 } as const;
