@@ -121,6 +121,42 @@ export function formatDateTime(date: string | Date): string {
 }
 
 /**
+ * Format date with weekday (e.g., "Th 7, 29/11/2025 23:59")
+ */
+export function formatDateWithWeekday(date: string | Date, includeTime = true): string {
+  try {
+    if (!date) return ""
+
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const userLocale = navigator.language || "vi-VN"
+
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: userTimeZone,
+      weekday: "short",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }
+
+    if (includeTime) {
+      options.hour = "2-digit"
+      options.minute = "2-digit"
+      options.hour12 = false
+    }
+
+    const dateObj = normalizeUTCDate(date)
+    if (isNaN(dateObj.getTime())) {
+      throw new Error("Invalid date")
+    }
+
+    return dateObj.toLocaleString(userLocale, options)
+  } catch (error) {
+    console.error("Error formatting date with weekday:", error)
+    return date ? new Date(date).toLocaleString("vi-VN") : ""
+  }
+}
+
+/**
  * Format time only (HH:mm)
  */
 export function formatTimeOnly(date: string | Date): string {
@@ -148,6 +184,18 @@ export function formatTimeOnly(date: string | Date): string {
     console.error('Error formatting time:', error)
     return ''
   }
+}
+
+/**
+ * Format order ID to show only last 8 characters
+ * @param orderId - Full order ID (UUID)
+ * @returns Last 8 characters of the order ID in uppercase
+ */
+export function formatOrderId(orderId: string): string {
+  if (!orderId || orderId.length <= 8) {
+    return orderId.toUpperCase()
+  }
+  return orderId.slice(-8).toUpperCase()
 }
 
 /**

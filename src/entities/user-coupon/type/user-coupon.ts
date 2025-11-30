@@ -1,8 +1,9 @@
 import { EntityStatusEnum } from "@/src/entities/user-address/type/user-address"
 
 export enum DiscountTypeEnum {
-  Percentage = 1,
-  Fixed = 2,
+  Percentage = 0,
+  Fixed = 1,
+  FreeShipping = 2,
 }
 
 export interface UserCouponItem {
@@ -13,6 +14,7 @@ export interface UserCouponItem {
   description?: string
   discountType: DiscountTypeEnum
   discountValue: number
+  maxDiscountCap?: number | null
   discountTypeName: string
   minOrderAmount: number
   startDate: string

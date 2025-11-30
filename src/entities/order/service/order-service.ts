@@ -10,6 +10,7 @@ import type {
   OrderFilter,
   CustomerOrderListItem,
   CustomerOrderDetailDto,
+  ShippingHistoryDto,
   PaginationResult,
   OrderState,
 } from "../type/order"
@@ -152,6 +153,11 @@ export const orderService = {
   // Place order
   placeOrder: async (request: PlaceOrderRequest): Promise<ApiResult<PlaceOrderResponse>> => {
     return apiClient.post<PlaceOrderResponse>(env.ENDPOINTS.ORDER.PLACE, request)
+  },
+  
+  // Get shipping history
+  getShippingHistory: async (orderId: string): Promise<ApiResult<ShippingHistoryDto[]>> => {
+    return apiClient.get<ShippingHistoryDto[]>(env.ENDPOINTS.ORDER.SHIPPING_HISTORY(orderId))
   },
 }
 

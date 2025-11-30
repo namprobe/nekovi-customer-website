@@ -44,6 +44,9 @@ export const useUserAddressStore = create<UserAddressState>()(
             userId: filter?.userId,
             addressType: filter?.addressType,
             status: filter?.status,
+            provinceId: filter?.provinceId,
+            districtId: filter?.districtId,
+            wardCode: filter?.wardCode,
           }
 
           const result = await apiClient.paginate<UserAddressItem>(

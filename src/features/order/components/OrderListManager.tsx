@@ -18,7 +18,7 @@ import {
   useOrderListError,
   useOrderListPagination,
 } from "@/src/entities/order/service/order-service"
-import { formatCurrency, formatDateOnly } from "@/src/shared/utils/format"
+import { formatCurrency, formatDateOnly, formatOrderId } from "@/src/shared/utils/format"
 import { useAuth } from "@/src/core/providers/auth-provider"
 import type { OrderFilter } from "@/src/entities/order/type/order"
 
@@ -35,8 +35,10 @@ export function OrderListManager() {
   const pagination = useOrderListPagination()
 
   const [searchQuery, setSearchQuery] = useState("")
-  const [activeTab, setActiveTab] = useState<"all" | "processing" | "shipping" | "completed">("all")
+  const [activeTab, setActiveTab] = useState<"all" | "processing" | "confirmed" | "shipping" | "completed" | "cancelled" | "returned" | "failed">("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
   const fetchedRef = useRef(false)
 
   // Map order status to display text
@@ -53,6 +55,10 @@ export function OrderListManager() {
         return "Đã giao"
       case 4:
         return "Đã hủy"
+      case 5:
+        return "Đã trả hàng"
+      case 6:
+        return "Giao thất bại"
       default:
         return "Không xác định"
     }
@@ -70,6 +76,10 @@ export function OrderListManager() {
         return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
       case 4: // Cancelled
         return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+      case 5:
+        return "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+      case 6:
+        return "bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200"
       default:
         return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
     }
@@ -86,17 +96,36 @@ export function OrderListManager() {
       filter.search = searchQuery
     }
 
-    // Map tab to orderStatus
+    if (fromDate) {
+      filter.dateFrom = new Date(fromDate).toISOString()
+    }
+    if (toDate) {
+      filter.dateTo = new Date(toDate).toISOString()
+    }
+
+    // Map tab to orderStatus (matching OrderStatusEnum from backend)
     if (activeTab !== "all") {
       switch (activeTab) {
         case "processing":
           filter.orderStatus = 0 // Processing
+          break
+        case "confirmed":
+          filter.orderStatus = 1 // Confirmed
           break
         case "shipping":
           filter.orderStatus = 2 // Shipping
           break
         case "completed":
           filter.orderStatus = 3 // Delivered
+          break
+        case "cancelled":
+          filter.orderStatus = 4 // Cancelled
+          break
+        case "returned":
+          filter.orderStatus = 5 // Returned
+          break
+        case "failed":
+          filter.orderStatus = 6 // Failed
           break
       }
     }
@@ -111,7 +140,7 @@ export function OrderListManager() {
       fetchOrderList(buildFilter())
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHydrated, isAuthenticated, currentPage, activeTab, searchQuery])
+  }, [isHydrated, isAuthenticated, currentPage, activeTab, searchQuery, fromDate, toDate])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -125,6 +154,15 @@ export function OrderListManager() {
   const handleSearch = () => {
     setCurrentPage(1)
     // Trigger re-fetch via useEffect dependency
+  }
+
+  const handleDateChange = (type: "from" | "to", value: string) => {
+    if (type === "from") {
+      setFromDate(value)
+    } else {
+      setToDate(value)
+    }
+    setCurrentPage(1)
   }
 
   // Handle tab change
@@ -143,8 +181,12 @@ export function OrderListManager() {
   const statusMap = {
     all: "Tất cả",
     processing: "Đang xử lý",
+    confirmed: "Đã xác nhận",
     shipping: "Đang giao hàng",
     completed: "Đã giao",
+    cancelled: "Đã hủy",
+    returned: "Đã trả hàng",
+    failed: "Giao thất bại",
   }
 
   const filteredOrders = orderList || []
@@ -152,39 +194,65 @@ export function OrderListManager() {
   return (
     <div className="container mx-auto px-4 py-12">
       <div className="mb-8 text-center">
-        <p className="mb-2 text-sm font-medium text-primary">Orders</p>
         <h1 className="text-4xl font-bold text-foreground">Đơn hàng của tôi</h1>
       </div>
 
       {/* Search and Filters */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Input
-            type="search"
-            placeholder="Tìm kiếm đơn hàng..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleSearch()
-              }
-            }}
-            className="pl-10"
-          />
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <div className="mb-6 space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Input
+              type="search"
+              placeholder="Tìm kiếm đơn hàng..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch()
+                }
+              }}
+              className="pl-10"
+            />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto">
+            {Object.entries(statusMap).map(([key, label]) => (
+              <Button
+                key={key}
+                variant={activeTab === key ? "default" : "outline"}
+                onClick={() => handleTabChange(key as typeof activeTab)}
+                className="whitespace-nowrap"
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto">
-          {Object.entries(statusMap).map(([key, label]) => (
-            <Button
-              key={key}
-              variant={activeTab === key ? "default" : "outline"}
-              onClick={() => handleTabChange(key as typeof activeTab)}
-              className="whitespace-nowrap"
-            >
-              {label}
-            </Button>
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground" htmlFor="fromDate">
+              Từ ngày
+            </label>
+            <Input
+              id="fromDate"
+              type="date"
+              value={fromDate}
+              onChange={(e) => handleDateChange("from", e.target.value)}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm text-muted-foreground" htmlFor="toDate">
+              Đến ngày
+            </label>
+            <Input
+              id="toDate"
+              type="date"
+              value={toDate}
+              onChange={(e) => handleDateChange("to", e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -219,7 +287,7 @@ export function OrderListManager() {
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">Mã đơn hàng: #{order.id}</p>
+                      <p className="text-sm text-muted-foreground">Mã đơn hàng: #{formatOrderId(order.id)}</p>
                       {order.createdAt && (
                         <p className="text-sm text-muted-foreground">
                           Ngày đặt: {formatDateOnly(order.createdAt)}
@@ -232,7 +300,7 @@ export function OrderListManager() {
                   </div>
 
                   <div className="space-y-3">
-                    {order.items.map((item) => (
+                    {order.items.slice(0, 2).map((item) => (
                       <div key={item.id} className="flex items-center gap-4">
                         <div className="relative h-20 w-20 overflow-hidden rounded-lg bg-muted">
                           <Image
@@ -251,7 +319,34 @@ export function OrderListManager() {
                         </div>
                       </div>
                     ))}
+                    {order.items.length > 2 && (
+                      <p className="text-sm text-muted-foreground">
+                        +{order.items.length - 2} sản phẩm khác
+                      </p>
+                    )}
                   </div>
+
+                  {order.shipping && (
+                    <div className="mt-4 rounded-lg bg-muted/30 p-4 text-sm">
+                      <p className="font-semibold text-foreground">
+                        Vận chuyển: {order.shipping.shippingMethodName || "Đang cập nhật"}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Trạng thái: {getOrderStatusText(order.shipping.shippingStatus ?? order.orderStatus)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Dự kiến giao:{" "}
+                        {order.shipping.estimatedDeliveryDate
+                          ? formatDateOnly(order.shipping.estimatedDeliveryDate)
+                          : "Chưa có"}
+                      </p>
+                      {order.shipping.trackingNumber && (
+                        <p className="text-muted-foreground">
+                          Mã vận đơn: {order.shipping.trackingNumber}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
                   <div className="mt-4 flex items-center justify-between border-t pt-4">
                     <div>

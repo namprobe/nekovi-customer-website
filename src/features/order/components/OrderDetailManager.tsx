@@ -2,21 +2,22 @@
 
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, Loader2, Package, Download, Search } from "lucide-react"
+import { ArrowLeft, Loader2, Package } from "lucide-react"
 import { Button } from "@/src/components/ui/button"
 import { Card, CardContent } from "@/src/components/ui/card"
 import { Badge } from "@/src/components/ui/badge"
-import { Input } from "@/src/components/ui/input"
 import {
   useOrderStore,
   useOrderDetail,
   useOrderDetailLoading,
   useOrderDetailError,
 } from "@/src/entities/order/service/order-service"
-import { formatCurrency, formatDateOnly, formatDateTime } from "@/src/shared/utils/format"
+import { orderService } from "@/src/entities/order/service/order-service"
+import type { ShippingHistoryDto } from "@/src/entities/order/type/order"
+import { formatCurrency, formatDateOnly, formatDateTime, formatOrderId } from "@/src/shared/utils/format"
 import { useAuth } from "@/src/core/providers/auth-provider"
 
 interface OrderDetailManagerProps {
@@ -30,6 +31,8 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
   const isLoading = useOrderDetailLoading()
   const error = useOrderDetailError()
   const fetchedRef = useRef(false)
+  const [shippingHistory, setShippingHistory] = useState<ShippingHistoryDto[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
 
   // Fetch order detail
   useEffect(() => {
@@ -38,6 +41,26 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
       fetchOrderDetail(orderId)
     }
   }, [isHydrated, isAuthenticated, orderId, fetchOrderDetail])
+
+  // Fetch shipping history
+  useEffect(() => {
+    if (isHydrated && isAuthenticated && orderId) {
+      setIsLoadingHistory(true)
+      orderService
+        .getShippingHistory(orderId)
+        .then((result) => {
+          if (result.isSuccess && result.data) {
+            setShippingHistory(result.data)
+          }
+        })
+        .catch(() => {
+          // Silently fail - shipping history is optional
+        })
+        .finally(() => {
+          setIsLoadingHistory(false)
+        })
+    }
+  }, [isHydrated, isAuthenticated, orderId])
 
   // Cleanup on unmount
   useEffect(() => {
@@ -60,6 +83,10 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
         return "Đã giao"
       case 4:
         return "Đã hủy"
+      case 5:
+        return "Đã trả hàng"
+      case 6:
+        return "Giao thất bại"
       default:
         return "Không xác định"
     }
@@ -77,33 +104,45 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
         return "text-green-600"
       case 4:
         return "text-red-600"
+      case 5:
+        return "text-orange-600"
+      case 6:
+        return "text-rose-600"
       default:
         return "text-gray-600"
     }
   }
 
-  // Mock shipping data (as requested)
-  const mockShippingData = {
-    orderNumber: order?.id || "N/A",
-    createdDate: order?.createdAt ? formatDateOnly(order.createdAt) : "N/A",
-    receivedDate: order?.createdAt ? formatDateOnly(order.createdAt) : "N/A",
-    estimatedDelivery: "N/A",
-    weight: "500",
-    service: "Giao hàng nhanh",
-    status: getOrderStatusText(order?.orderStatus || 0),
-    statusColor: getStatusColor(order?.orderStatus || 0),
-    recipient: {
-      name: "Nguyen Van A",
-      address: "Hồ Chí Minh - THÀNH PHỐ THỦ ĐỨC",
-    },
-    tracking: [
-      {
-        date: order?.createdAt ? formatDateTime(order.createdAt) : "N/A",
-        status: getOrderStatusText(order?.orderStatus || 0),
-        description: "Đơn hàng đã được tạo",
-      },
-    ],
-  }
+  const shippingInfo = order?.shipping
+
+  // Use shipping history if available, otherwise fallback to basic tracking events
+  const trackingEvents = shippingHistory.length > 0
+    ? shippingHistory.map((history) => ({
+        title: history.statusDescription,
+        description: history.statusName,
+        date: formatDateTime(history.eventTime),
+        statusCode: history.statusCode,
+      }))
+    : [
+        shippingInfo?.shippedDate && {
+          title: "Đã gửi hàng",
+          description: "Đơn hàng đã bàn giao cho đơn vị vận chuyển",
+          date: formatDateTime(shippingInfo.shippedDate),
+          statusCode: 5, // "picked"
+        },
+        shippingInfo?.estimatedDeliveryDate && {
+          title: "Dự kiến giao",
+          description: "Thời gian giao hàng dự kiến",
+          date: formatDateTime(shippingInfo.estimatedDeliveryDate),
+          statusCode: 0,
+        },
+        shippingInfo?.deliveredDate && {
+          title: "Đã giao",
+          description: "Đơn hàng đã giao cho khách",
+          date: formatDateTime(shippingInfo.deliveredDate),
+          statusCode: 11, // "delivered"
+        },
+      ].filter(Boolean) as { title: string; description: string; date: string; statusCode: number }[]
 
   // Loading state
   if (isLoading) {
@@ -137,7 +176,7 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-bold text-destructive mb-4">Không tìm thấy đơn hàng</h1>
-        <p className="text-muted-foreground mb-6">Đơn hàng với ID {orderId} không tồn tại</p>
+        <p className="text-muted-foreground mb-6">Đơn hàng với ID #{formatOrderId(orderId)} không tồn tại</p>
         <Link href="/orders">
           <Button>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -162,7 +201,7 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
 
       {/* Page Title */}
       <div className="mb-8">
-        <h1 className="text-4xl font-bold text-primary mb-2">Chi tiết đơn hàng #{order.id}</h1>
+        <h1 className="text-4xl font-bold text-primary mb-2">Chi tiết đơn hàng #{formatOrderId(order.id)}</h1>
         <div className="flex items-center gap-4">
           <Badge className={`${getStatusColor(order.orderStatus)} bg-opacity-20`}>
             {getOrderStatusText(order.orderStatus)}
@@ -175,59 +214,78 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
 
       {/* Order Information Grid */}
       <div className="mb-8 grid gap-6 md:grid-cols-3">
-        {/* Order Details Card */}
+        {/* Shipping Summary */}
         <Card className="bg-muted/30 p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Mã phiếu gửi:</p>
-              <p className="font-semibold">{mockShippingData.orderNumber}</p>
+              <p className="text-sm text-muted-foreground">Đơn vị vận chuyển</p>
+              <p className="font-semibold">
+                {shippingInfo?.shippingMethodName || "Chưa cập nhật"}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Chi tiết đơn hàng:</p>
-              <button className="text-accent hover:underline">Xem chi tiết</button>
+              <p className="text-sm text-muted-foreground">Trạng thái</p>
+              <p className={`font-semibold ${getStatusColor(shippingInfo?.shippingStatus ?? order.orderStatus)}`}>
+                {getOrderStatusText(shippingInfo?.shippingStatus ?? order.orderStatus)}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Người nhận:</p>
-              <p className="font-medium">{mockShippingData.recipient.name}</p>
-              <p className="text-sm text-muted-foreground">{mockShippingData.recipient.address}</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* Shipping Details Card */}
-        <Card className="bg-muted/30 p-6">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Khối lượng(Gram):</p>
-              <p className="font-semibold">{mockShippingData.weight}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Dịch vụ:</p>
-              <p className="font-medium">{mockShippingData.service}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Trạng thái:</p>
-              <p className={`font-semibold ${mockShippingData.statusColor}`}>
-                {mockShippingData.status}
+              <p className="text-sm text-muted-foreground">Mã vận đơn</p>
+              <p className="font-semibold">
+                {shippingInfo?.trackingNumber || "Đang cập nhật"}
               </p>
             </div>
           </div>
         </Card>
 
-        {/* Dates Card */}
+        {/* Shipping Dates */}
         <Card className="bg-muted/30 p-6">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Ngày tạo:</p>
-              <p className="font-semibold">{mockShippingData.createdDate}</p>
+              <p className="text-sm text-muted-foreground">Ngày gửi</p>
+              <p className="font-semibold">
+                {shippingInfo?.shippedDate
+                  ? formatDateOnly(shippingInfo.shippedDate)
+                  : "Chưa có"}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Ngày nhận hàng:</p>
-              <p className="font-semibold">{mockShippingData.receivedDate}</p>
+              <p className="text-sm text-muted-foreground">Dự kiến giao</p>
+              <p className="font-semibold">
+                {shippingInfo?.estimatedDeliveryDate
+                  ? formatDateOnly(shippingInfo.estimatedDeliveryDate)
+                  : "Chưa có"}
+              </p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Ngày giao hàng dự kiến:</p>
-              <p className="font-semibold">{mockShippingData.estimatedDelivery}</p>
+              <p className="text-sm text-muted-foreground">Ngày giao thực tế</p>
+              <p className="font-semibold">
+                {shippingInfo?.deliveredDate
+                  ? formatDateOnly(shippingInfo.deliveredDate)
+                  : "Chưa có"}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Order Info */}
+        <Card className="bg-muted/30 p-6">
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Mã đơn hàng</p>
+              <p className="font-semibold">{formatOrderId(order.id)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Ngày tạo</p>
+              <p className="font-semibold">
+                {order.createdAt ? formatDateTime(order.createdAt) : "Chưa có"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Ghi chú</p>
+              <p className="font-semibold">
+                {"Không có ghi chú"}
+              </p>
             </div>
           </div>
         </Card>
@@ -277,19 +335,78 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
         <div className="mt-6 border-t pt-6">
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tổng tiền:</span>
-              <span>{formatCurrency(order.totalAmount)}</span>
+              <span className="text-muted-foreground">Tổng đơn hàng gốc:</span>
+              <span>{formatCurrency(order.subtotalOriginal)}</span>
             </div>
-            {order.discountAmount > 0 && (
+            {order.productDiscountAmount > 0 && (
               <div className="flex justify-between text-green-600">
-                <span>Giảm giá:</span>
-                <span>-{formatCurrency(order.discountAmount)}</span>
+                <span>Giảm giá sản phẩm:</span>
+                <span>-{formatCurrency(order.productDiscountAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tổng sau giảm giá sản phẩm:</span>
+              <span>{formatCurrency(order.subtotalAfterProductDiscount)}</span>
+            </div>
+            {order.couponDiscountAmount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span>Giảm giá voucher:</span>
+                <span>-{formatCurrency(order.couponDiscountAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Tổng tiền hàng:</span>
+              <span>{formatCurrency(order.totalProductAmount)}</span>
+            </div>
+            {order.shippingFeeOriginal > 0 && (
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phí vận chuyển:</span>
+                  <span>{formatCurrency(order.shippingFeeOriginal)}</span>
+                </div>
+                {order.shippingDiscountAmount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Giảm phí vận chuyển:</span>
+                    <span>-{formatCurrency(order.shippingDiscountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phí vận chuyển sau ưu đãi:</span>
+                  <span>{formatCurrency(order.shippingFeeActual)}</span>
+                </div>
+              </>
+            )}
+            {order.taxAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Thuế:</span>
+                <span>{formatCurrency(order.taxAmount)}</span>
               </div>
             )}
             {order.payment && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Phương thức thanh toán:</span>
-                <span>{order.payment.paymentMethodName}</span>
+              <>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Phương thức thanh toán:</span>
+                  <span>{order.payment.paymentMethodName}</span>
+                </div>
+                {order.payment.transactionNo && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mã giao dịch:</span>
+                    <span className="font-mono text-sm">{order.payment.transactionNo}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {order.appliedCoupons && order.appliedCoupons.length > 0 && (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm text-muted-foreground">Voucher đã sử dụng:</p>
+                {order.appliedCoupons.map((coupon, index) => (
+                  <div key={index} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      {coupon.couponCode}
+                      {coupon.description && ` - ${coupon.description}`}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
             <div className="flex justify-between border-t pt-2 font-semibold">
@@ -308,24 +425,26 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
             <Package className="h-5 w-5 text-destructive" />
             <h2 className="font-semibold text-destructive">Lịch sử vận chuyển</h2>
           </div>
-          {mockShippingData.tracking.map((event, index) => (
-            <div key={index} className="mb-2">
-              <p className="text-sm font-medium">{event.date}</p>
-              <p className="text-sm text-muted-foreground">{event.description}</p>
-              <button className="mt-1 flex items-center gap-1 text-sm text-accent hover:underline">
-                <Download className="h-4 w-4" />
-                Tải ảnh tin bưu cục
-              </button>
+          {isLoadingHistory ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
             </div>
-          ))}
-
-          {/* Search Tracking */}
-          <div className="mt-6 flex gap-2">
-            <Input placeholder="Tra cứu đơn hàng" className="flex-1" />
-            <Button size="icon" variant="outline">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          ) : trackingEvents.length > 0 ? (
+            <div className="space-y-4">
+              {trackingEvents.map((event, index) => (
+                <div key={`${event.title}-${index}`} className="relative border-l-2 border-primary pl-4 pb-4 last:border-l-0 last:pb-0">
+                  <div className="absolute -left-2 top-0 h-4 w-4 rounded-full bg-primary"></div>
+                  <p className="text-sm font-medium text-foreground">{event.title}</p>
+                  <p className="text-xs text-muted-foreground">{event.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{event.date}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Chưa có dữ liệu vận chuyển cho đơn hàng này.
+            </p>
+          )}
         </Card>
 
         {/* Mascot Illustration - 30% */}
