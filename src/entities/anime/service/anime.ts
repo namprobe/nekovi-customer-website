@@ -19,7 +19,7 @@ export class AnimeService {
         if (title) params.append('Title', title);
         if (releaseYear) params.append('ReleaseYear', String(releaseYear));
 
-        const response = await apiClient.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIME_SERIES.SELECT_LIST}?${params.toString()}`);
+        const response = await apiClient.get<PaginateResult<AnimeSeries>>(`${env.ENDPOINTS.ANIME_SERIES.LIST}?${params.toString()}`);
 
         if (!response.isSuccess || !response.data) {
             throw new Error(response.message || 'Không thể lấy danh sách anime series');

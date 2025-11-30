@@ -9,6 +9,9 @@ import { Badge } from '@/src/components/ui/badge';
 import type { Product } from '@/src/shared/types';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { useWishlistStore } from '@/src/entities/wishlist/service';
+import { cn } from '@/src/lib/utils';
+import { useToast } from '@/src/hooks/use-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -24,6 +27,38 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCa
 
   const searchParams = useSearchParams();
   const queryString = searchParams.toString(); // giữ nguyên query params hiện tại
+
+  const { isInWishlist, addToWishlist: addToWishlistFromStore } = useWishlistStore();
+  const { toast } = useToast();
+  const isLiked = isInWishlist(product.id);
+
+  const handleWishlistClick = async () => {
+
+    try {
+      const result = await addToWishlistFromStore({ productId: product.id });
+
+      if (result.success) {
+        const isNowLiked = isInWishlist(product.id);
+        toast({
+          title: isNowLiked ? "Đã thêm vào yêu thích" : "Đã xóa khỏi yêu thích",
+          description: `${product.name}`,
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: result.error || "Không thể cập nhật danh sách yêu thích",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('🔴 [ProductCard] Error:', error);
+      toast({
+        title: "Lỗi",
+        description: "Đã xảy ra lỗi khi cập nhật wishlist",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className="group relative overflow-hidden transition-all hover:shadow-lg">
@@ -88,11 +123,16 @@ export function ProductCard({ product, onAddToCart, onAddToWishlist }: ProductCa
             variant="outline"
             onClick={(e) => {
               e.preventDefault();
-              onAddToWishlist?.(product);
+              e.stopPropagation();
+              handleWishlistClick();
             }}
             aria-label="Add to wishlist"
+            className={cn(
+              "transition-colors",
+              isLiked && "text-red-500 hover:text-red-600"
+            )}
           >
-            <Heart className="h-4 w-4" />
+            <Heart className={cn("h-4 w-4", isLiked && "fill-current")} />
           </Button>
         </div>
 

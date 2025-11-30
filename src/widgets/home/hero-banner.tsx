@@ -1,107 +1,134 @@
-"use client"
+// src/widgets/home/hero-banner.tsx
+"use client";
 
-import { useState, useEffect } from "react"
-import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/src/components/ui/button"
-
-const banners = [
-  {
-    id: 1,
-    image: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/home-page.png-1vCN20NZC1rtVrzHB7zzrreqt8mHaH.jpeg",
-    alt: "Demon Slayer Banner",
-    title: "Demon Slayer Collection",
-  },
-  {
-    id: 2,
-    image: "/anime-banner-2.jpg",
-    alt: "One Piece Banner",
-    title: "One Piece Collection",
-  },
-  {
-    id: 3,
-    image: "/anime-banner-3.jpg",
-    alt: "Naruto Banner",
-    title: "Naruto Collection",
-  },
-]
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/src/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useHeroBannerImages } from "@/src/hooks/useHeroBannerImages";
+import { useState, useEffect } from "react";
+import clsx from "clsx";
 
 export function HeroBanner() {
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const { images, isLoading } = useHeroBannerImages();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Auto slide
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % banners.length)
-    }, 5000)
-    return () => clearInterval(timer)
-  }, [])
+    if (images.length <= 1) return;
 
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index)
+    const interval = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % images.length);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [images.length]);
+
+  // Loading
+  if (isLoading) {
+    return <Skeleton className="w-full aspect-[21/9] md:aspect-[21/7] rounded-none" />;
   }
 
-  const goToPrevious = () => {
-    setCurrentSlide((prev) => (prev - 1 + banners.length) % banners.length)
-  }
-
-  const goToNext = () => {
-    setCurrentSlide((prev) => (prev + 1) % banners.length)
+  // Fallback khi không có ảnh
+  if (!images.length) {
+    return (
+      <div className="relative aspect-[21/9] md:aspect-[21/7] bg-gradient-to-br from-purple-900 via-pink-900 to-rose-900 flex items-center justify-center flex overflow-hidden">
+        <div className="text-center z-10">
+          <h1 className="text-5xl md:text-7xl font-bold text-white mb-4">NekoViBE</h1>
+          <p className="text-xl text-white/80">Anime Paradise</p>
+        </div>
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+    );
   }
 
   return (
-    <div className="relative w-full overflow-hidden bg-gradient-to-br from-primary/20 to-accent/20">
-      <div className="relative aspect-[21/9] w-full md:aspect-[21/7]">
-        {banners.map((banner, index) => (
+    <div className="relative w-full overflow-hidden bg-black">
+      <div className="relative aspect-[21/9] md:aspect-[21/7]">
+        {/* Các ảnh */}
+        {images.map((img, i) => (
           <div
-            key={banner.id}
-            className={`absolute inset-0 transition-opacity duration-500 ${
-              index === currentSlide ? "opacity-100" : "opacity-0"
-            }`}
+            key={img.id}
+            className={clsx(
+              "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+              i === currentIndex ? "opacity-100" : "opacity-0"
+            )}
           >
-            <Image
-              src={banner.image || "/placeholder.svg"}
-              alt={banner.alt}
-              fill
-              className="object-cover"
-              priority={index === 0}
+            {/* Dùng thẻ <img> thuần + trick chống layout shift */}
+            <img
+              src={img.imagePath}
+              alt={img.name}
+              className="w-full h-full object-cover"
+              loading={i === 0 ? "eager" : "lazy"}
+              draggable={false}
+              style={{ aspectRatio: "21 / 9" }}
             />
+
+            {/* Overlay tên anime (nếu có) */}
+            {img.name && (
+              <div className="absolute bottom-8 left-8 bg-black/70 backdrop-blur px-8 py-4 rounded-xl pointer-events-none">
+                <p className="text-3xl font-bold text-white drop-shadow-2xl">
+                  {img.name}
+                </p>
+              </div>
+            )}
           </div>
         ))}
 
-        {/* Navigation Arrows */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-background/80 hover:bg-background"
-          onClick={goToPrevious}
-          aria-label="Previous slide"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-background/80 hover:bg-background"
-          onClick={goToNext}
-          aria-label="Next slide"
-        >
-          <ChevronRight className="h-6 w-6" />
-        </Button>
-
-        {/* Dots Indicator */}
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
-          {banners.map((_, index) => (
+        {/* Navigation - chỉ hiện khi có nhiều hơn 1 ảnh */}
+        {images.length > 1 && (
+          <>
+            {/* Left Arrow */}
             <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`h-2 w-2 rounded-full transition-all ${
-                index === currentSlide ? "w-8 bg-primary" : "bg-background/60"
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
+              className="
+        absolute left-4 top-1/2 -translate-y-1/2 
+        flex items-center justify-center
+        h-14 w-14 rounded-full
+        bg-black/50 hover:bg-black/70 
+        border border-white/70
+        shadow-xl
+        backdrop-blur-lg
+        transition-all
+        hover:scale-110
+      "
+              onClick={() => setCurrentIndex((i) => (i - 1 + images.length) % images.length)}
+            >
+              <ChevronLeft className="h-10 w-10 text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]" />
+            </button>
+
+            {/* Right Arrow */}
+            <button
+              className="
+        absolute right-4 top-1/2 -translate-y-1/2 
+        flex items-center justify-center
+        h-14 w-14 rounded-full
+        bg-black/50 hover:bg-black/70 
+        border border-white/70
+        shadow-xl
+        backdrop-blur-lg
+        transition-all
+        hover:scale-110
+      "
+              onClick={() => setCurrentIndex((i) => (i + 1) % images.length)}
+            >
+              <ChevronRight className="h-10 w-10 text-white drop-shadow-[0_0_6px_rgba(0,0,0,0.6)]" />
+            </button>
+            {/* Dots indicator */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
+              {images.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCurrentIndex(i)}
+                  className={clsx(
+                    "h-2 rounded-full transition-all duration-300",
+                    i === currentIndex ? "w-12 bg-white" : "w-2 bg-white/50 hover:bg-white/70"
+                  )}
+                  aria-label={`Go to slide ${i + 1}`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
-  )
+  );
 }
