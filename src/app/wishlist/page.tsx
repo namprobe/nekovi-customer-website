@@ -209,9 +209,9 @@ export default function WishlistPage() {
                             {product.category.name}
                           </Badge>
                         )}
-                        {product.animeSeries && (
+                        {product.animeSeries?.title && (
                           <Badge variant="outline" className="text-xs gap-1 border-purple-500 text-purple-600">
-                            {product.animeSeries.name}
+                            {product.animeSeries.title}
                           </Badge>
                         )}
                       </div>
