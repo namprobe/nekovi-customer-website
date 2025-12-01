@@ -9,7 +9,10 @@ const BASE_URL = normalizeUrl(
 );
 const CUSTOMER_PREFIX = process.env.NEXT_PUBLIC_CUSTOMER_PREFIX || "/api/customer";
 const COMMON_PREFIX = process.env.NEXT_PUBLIC_COMMON_PREFIX || "/api/common";
-
+const GHN_BASE_URL = normalizeUrl(
+    process.env.NEXT_PUBLIC_GHN_BASE_URL || "https://dev-online-gateway.ghn.vn/shiip/public-api"
+);
+const GHN_TOKEN = process.env.NEXT_PUBLIC_GHN_TOKEN || "";
 const API_BASE = `${BASE_URL}${CUSTOMER_PREFIX}`;
 
 export const env = {
@@ -17,6 +20,8 @@ export const env = {
     CUSTOMER_PREFIX,
     COMMON_PREFIX,
     API_BASE,
+    GHN_BASE_URL,
+    GHN_TOKEN,
 
     APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || "Customer FE",
     DEBUG: process.env.NEXT_PUBLIC_DEBUG === "true",
@@ -42,7 +47,9 @@ export const env = {
             SELECT_LIST: `/categories/select-list`,
         },
         ANIME_SERIES: {
-            SELECT_LIST: `/anime-series`,
+            LIST: `/anime-series`,
+            SELECT_LIST: `/anime-series/select-list`,
+            //SELECT_LIST: `/anime-series`,
         },
         PRODUCT_REVIEW: {
             LIST: `/product-reviews`,
@@ -92,9 +99,25 @@ export const env = {
             PLACE: `/orders`,
             LIST: `/orders`,
             DETAIL: (id: string) => `/orders/${id}`,
+            SHIPPING_HISTORY: (id: string) => `/orders/${id}/shipping-history`,
+
         },
         PAYMENT_METHOD: {
             LIST: `/payment-methods`,
         },
+        SHIPPING_METHOD: {
+            BASE: `/shipping-methods`,
+            CALCULATE_FEE: `/shipping-methods/calculate-fee`,
+            LEAD_TIME: `/shipping-methods/lead-time`,
+        },
+        HOME_IMAGE: {
+            LIST: `/home-images`,
+        },
+        USER_HOME_IMAGE: {
+            LIST: `/user-home-images`,
+            DETAIL: (id: string) => `/user-home-images/${id}`,
+            MY_LIST: `/user-home-images/me`,
+            SAVE_ALL: `/user-home-images/save`,
+        }
     },
 } as const;
