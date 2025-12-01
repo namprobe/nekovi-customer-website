@@ -19,6 +19,7 @@ import { productService } from '@/src/entities/product/service/product-service';
 import { productReviewService } from '@/src/entities/productReview/service/product-review-service';
 import { ProductReviewItem } from '@/src/entities/productReview/type/product-review';
 import { Pagination } from '@/src/components/ui/pagination';
+import { cn } from '@/src/lib/utils'; // Import thêm cn để xử lý class tiện hơn
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function ProductDetailPage() {
   // === PRODUCT DETAIL ===
   const { data: product, loading, error } = useProductDetail(params.id as string);
 
-  // === REVIEW STATES – Chỉ dùng 1 currentPage như trang danh sách ===
+  // === REVIEW STATES ===
   const [currentPage, setCurrentPage] = useState(1);
   const [reviews, setReviews] = useState<ProductReviewItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,7 +44,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  // === LOAD REVIEWS – Dùng API paging riêng ===
+  // === LOAD REVIEWS ===
   const loadReviews = async (page: number = 1) => {
     if (!params.id) return;
 
@@ -75,7 +76,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Load lần đầu khi có product
   useEffect(() => {
     if (product) {
       loadReviews(1);
@@ -83,9 +83,8 @@ export default function ProductDetailPage() {
   }, [product?.id]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page); // ← Phải có dòng này trước
+    setCurrentPage(page);
     loadReviews(page);
-
   };
 
   // === RELATED PRODUCTS ===
@@ -107,8 +106,8 @@ export default function ProductDetailPage() {
             slug: item.name.toLowerCase().replace(/\s+/g, '-') || `product-${item.id}`,
             description: item.description || 'Không có mô tả',
             price: item.price,
-            originalPrice: undefined,
-            discount: undefined,
+            // Cập nhật mapping cho related products để ProductCard hiển thị đúng
+            discountPrice: item.discountPrice,
             categoryId: item.categoryId,
             category: item.category ? {
               id: item.category.id,
@@ -162,17 +161,15 @@ export default function ProductDetailPage() {
     );
   }
 
-  // === MAP PRODUCT – Đã fix hết lỗi TypeScript ===
+  // === MAP PRODUCT ===
+  // 1. Giữ nguyên giá gốc từ API vào price, không tự trừ ở đây
   const mappedProduct: Product = {
     id: product.id,
     name: product.name,
     slug: product.name.toLowerCase().replace(/\s+/g, '-') || `product-${product.id}`,
     description: product.description || 'Không có mô tả',
-    price: product.discountPrice
-      ? product.price * (1 - product.discountPrice / 100)
-      : product.price,
-    originalPrice: product.discountPrice ? product.price : undefined,
-    discount: product.discountPrice ?? undefined,
+    price: product.price, // GIÁ GỐC
+    discountPrice: product.discountPrice ?? undefined, // TIỀN GIẢM
     categoryId: product.categoryId,
     category: product.category ? {
       id: product.category.id,
@@ -205,11 +202,17 @@ export default function ProductDetailPage() {
     isPreOrder: product.isPreOrder || false,
     tags: product.productTags?.map(pt => pt.tag.name) || [],
     rating: product.averageRating ?? 0,
-    reviewCount: totalCount, // Dùng từ API paging → chính xác nhất
+    reviewCount: totalCount,
     createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
   };
 
   const images = mappedProduct.images;
+
+  // === LOGIC TÍNH TOÁN GIÁ (Giống ProductCard) ===
+  const discountAmount = mappedProduct.discountPrice ?? 0;
+  const hasDiscount = discountAmount > 0;
+  const originalPrice = mappedProduct.price;
+  const finalPrice = originalPrice - discountAmount;
 
   const handleAddToCart = async () => {
     const result = await addToCart({ productId: mappedProduct.id, quantity });
@@ -232,7 +235,7 @@ export default function ProductDetailPage() {
     }
 
     const isInList = isInWishlist(mappedProduct.id);
-    
+
     if (isInList) {
       const result = await removeFromWishlist(mappedProduct.id);
       if (result.success) {
@@ -264,7 +267,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Add to cart for related products (always quantity = 1, không ảnh hưởng quantity đang chọn của sản phẩm chính)
   const handleAddRelatedToCart = async (product: Product) => {
     const result = await addToCart({ productId: product.id, quantity: 1 });
     if (result.success) {
@@ -298,11 +300,13 @@ export default function ProductDetailPage() {
                 alt={images[selectedImage]?.alt || mappedProduct.name}
                 className="w-full h-full object-cover"
               />
-              {mappedProduct.discount ? (
-                <Badge className="absolute right-4 top-4 bg-red-500 text-lg">
-                  -{mappedProduct.discount}%
+
+              {/* Cập nhật Badge hiển thị số tiền giảm thay vì % */}
+              {hasDiscount && (
+                <Badge className="absolute right-4 top-4 bg-destructive text-destructive-foreground text-lg font-bold">
+                  -{formatCurrency(discountAmount)}
                 </Badge>
-              ) : null}
+              )}
             </div>
             <div className="grid grid-cols-4 gap-4">
               {images.map((img, idx) => (
@@ -338,13 +342,19 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
+            {/* HIỂN THỊ GIÁ MỚI - Đồng bộ với ProductCard */}
             <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-primary">{formatCurrency(mappedProduct.price)}</span>
-              {mappedProduct.originalPrice && (
-                <span className="text-xl text-muted-foreground line-through">
-                  {formatCurrency(mappedProduct.originalPrice)}
+              {/* Giá gốc gạch ngang (nếu có giảm) */}
+              {hasDiscount && (
+                <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
+                  {formatCurrency(originalPrice)}
                 </span>
               )}
+
+              {/* Giá bán cuối cùng (Màu chủ đạo/hồng) */}
+              <span className="text-4xl font-bold text-primary">
+                {formatCurrency(finalPrice)}
+              </span>
             </div>
 
             {/* Quantity & Stock */}
@@ -381,13 +391,12 @@ export default function ProductDetailPage() {
                 className="px-4"
                 aria-label={isInWishlist(mappedProduct.id) ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
               >
-                <Heart 
+                <Heart
                   className={`h-5 w-5 ${isInWishlist(mappedProduct.id) ? 'fill-red-500 text-red-500' : ''}`}
                 />
               </Button>
               <Button
                 onClick={() => {
-                  // Mua ngay: không ảnh hưởng đến cart, chuyển sang checkout với productId & quantity
                   router.push(`/checkout?productId=${mappedProduct.id}&quantity=${quantity}`);
                 }}
                 disabled={mappedProduct.stock === 0}
@@ -401,7 +410,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Reviews Section – Phân trang chuẩn như trang danh sách */}
+        {/* Reviews Section */}
         <section id="reviews-section" className="mt-16 space-y-8">
           <h2 className="text-2xl font-bold">Đánh giá sản phẩm ({totalCount})</h2>
 
@@ -442,7 +451,7 @@ export default function ProductDetailPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={handlePageChange} // ← vẫn dùng handlePageChange
+                onPageChange={handlePageChange}
               />
             </div>
           )}

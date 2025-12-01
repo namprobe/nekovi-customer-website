@@ -42,7 +42,7 @@ export interface ProductItem extends BaseEntity {
     slug?: string;
     description?: string;
     price: number;
-    discountPrice?: number;
+    discountPrice?: number | null;
     stockQuantity: number;
     isPreOrder?: boolean;
     preOrderReleaseDate?: string;
