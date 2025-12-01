@@ -58,7 +58,7 @@ export const useUserCouponStore = create<UserCouponState>()(
           } else {
             set({
               isLoading: false,
-              error: result.message || "Failed to load coupons",
+              error: result.errors?.[0] || "Failed to load coupons",
             })
           }
         } catch (error) {
