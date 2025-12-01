@@ -162,6 +162,27 @@ export const useBadgeStore = create<BadgeState>()(
         }
       },
 
+      // Sync badge coupons to user's coupon collection
+      syncBadgeCoupons: async () => {
+        try {
+          const result = await apiClient.post(
+            env.ENDPOINTS.BADGE.SYNC_COUPONS
+          )
+
+          if (result.isSuccess) {
+            return { success: true, message: result.message }
+          } else {
+            return {
+              success: false,
+              error: result.message || "Failed to sync badge coupons",
+            }
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Network error"
+          return { success: false, error: errorMessage }
+        }
+      },
+
       // Clear error
       clearError: () => {
         set({ error: null })

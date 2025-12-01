@@ -78,6 +78,7 @@ export const env = {
             USER_BADGES: (userId: string) => `/badges/${userId}`,
             EQUIP: (badgeId: string) => `/badges/${badgeId}/equip`,
             PROCESS: `/badges/process`,
+            SYNC_COUPONS: `/badges/sync-coupons`,
         },
         BLOG: {
             LIST: `/blog-posts`,

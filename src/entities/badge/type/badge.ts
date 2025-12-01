@@ -68,5 +68,6 @@ export interface BadgeState {
   fetchUserBadges: (userId: string) => Promise<void>
   equipBadge: (badgeId: string) => Promise<{ success: boolean; error?: string }>
   processBadgeEligibility: () => Promise<{ success: boolean; newBadges?: NewlyAwardedBadge[]; error?: string }>
+  syncBadgeCoupons: () => Promise<{ success: boolean; message?: string; error?: string }>
   clearError: () => void
 }
