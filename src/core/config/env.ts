@@ -110,6 +110,10 @@ export const env = {
             DETAIL: (id: string) => `/user-home-images/${id}`,
             MY_LIST: `/user-home-images/me`,
             SAVE_ALL: `/user-home-images/save`,
+        },
+        EVENT: {
+            LIST: `/events`,
+            DETAIL: (id: string) => `/events/${id}`,
         }
     },
 } as const;

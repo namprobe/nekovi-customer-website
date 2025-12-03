@@ -43,6 +43,7 @@ export function Navbar() {
     { href: "/products", label: "Sản Phẩm" },
     { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
+    { href: "/event", label: "Sự kiện" },
     { href: "/awards", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },
   ]
