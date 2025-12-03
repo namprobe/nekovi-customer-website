@@ -1,4 +1,3 @@
-// src/widgets/layout/navbar.tsx
 "use client"
 
 import Link from "next/link"
@@ -44,7 +43,7 @@ export function Navbar() {
     { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
     { href: "/event", label: "Sự kiện" },
-    { href: "/awards", label: "Danh hiệu" },
+    { href: "/badges", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },
   ]
 
@@ -126,16 +125,14 @@ export function Navbar() {
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
                 </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/my-home-images">Ảnh Trang Chủ Của Tôi</Link>
-                </DropdownMenuItem>
-
                 <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/wishlist">Yêu Thích</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/badges">Danh Hiệu</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/my-coupons">Phiếu Của Tôi</Link>
@@ -192,14 +189,14 @@ export function Navbar() {
                         <Link href="/profile" className="block text-sm hover:text-primary">
                           Hồ Sơ Của Tôi
                         </Link>
-                        <Link href="/my-home-images" className="block text-sm hover:text-primary">
-                          Ảnh Trang Chủ Của Tôi
-                        </Link>
                         <Link href="/orders" className="block text-sm hover:text-primary">
                           Đơn Hàng
                         </Link>
                         <Link href="/wishlist" className="block text-sm hover:text-primary">
                           Yêu Thích
+                        </Link>
+                        <Link href="/badges" className="block text-sm hover:text-primary">
+                          Danh Hiệu
                         </Link>
                         <Link href="/my-coupons" className="block text-sm hover:text-primary">
                           Phiếu Của Tôi

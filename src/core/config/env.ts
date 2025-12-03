@@ -13,7 +13,6 @@ const GHN_BASE_URL = normalizeUrl(
     process.env.NEXT_PUBLIC_GHN_BASE_URL || "https://dev-online-gateway.ghn.vn/shiip/public-api"
 );
 const GHN_TOKEN = process.env.NEXT_PUBLIC_GHN_TOKEN || "";
-
 const API_BASE = `${BASE_URL}${CUSTOMER_PREFIX}`;
 
 export const env = {
@@ -50,6 +49,7 @@ export const env = {
         ANIME_SERIES: {
             LIST: `/anime-series`,
             SELECT_LIST: `/anime-series/select-list`,
+            //SELECT_LIST: `/anime-series`,
         },
         PRODUCT_REVIEW: {
             LIST: `/product-reviews`,
@@ -80,6 +80,13 @@ export const env = {
             MY_COUPONS: `/user-coupons`,
             COLLECT: `/coupons/collect`,
         },
+        BADGE: {
+            MY_BADGES: `/badges`,
+            USER_BADGES: (userId: string) => `/badges/${userId}`,
+            EQUIP: (badgeId: string) => `/badges/${badgeId}/equip`,
+            PROCESS: `/badges/process`,
+            SYNC_COUPONS: `/badges/sync-coupons`,
+        },
         BLOG: {
             LIST: `/blog-posts`,
             LATEST_BY_CATEGORY: `/blog-posts/latest-by-category`,
@@ -93,6 +100,7 @@ export const env = {
             LIST: `/orders`,
             DETAIL: (id: string) => `/orders/${id}`,
             SHIPPING_HISTORY: (id: string) => `/orders/${id}/shipping-history`,
+
         },
         PAYMENT_METHOD: {
             LIST: `/payment-methods`,

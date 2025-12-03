@@ -14,7 +14,7 @@ export interface ProductItemInWishlist {
   animeSeriesId?: string
   animeSeries?: {
     id: string
-    name: string
+    title: string
   }
   stockQuantity: number
   price: number

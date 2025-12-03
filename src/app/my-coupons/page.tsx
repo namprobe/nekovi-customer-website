@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { Badge } from "@/src/components/ui/badge"
 import { Button } from "@/src/components/ui/button"
@@ -10,20 +10,40 @@ import { AuthGuard } from "@/src/components/auth/auth-guard"
 import { MainLayout } from "@/src/widgets/layout/main-layout"
 import { formatCurrency } from "@/src/shared/utils/format"
 import { useCouponStore } from "@/src/entities/coupon/service"
+import { useBadgeStore } from "@/src/entities/badge/service/badge-service"
 import { useToast } from "@/src/hooks/use-toast"
 
 export default function MyCouponsPage() {
   const { toast } = useToast()
+  const [isSyncing, setIsSyncing] = useState(false)
   const {
     userCoupons,
     isLoading,
     error,
     fetchUserCoupons,
   } = useCouponStore()
+  const { syncBadgeCoupons } = useBadgeStore()
+
+  // Wrap in useCallback to prevent re-creation on every render
+  const syncAndFetch = useCallback(async () => {
+    setIsSyncing(true)
+    try {
+      // Sync badge coupons silently in the background
+      await syncBadgeCoupons()
+      // Then fetch all user coupons (including newly synced badge coupons)
+      await fetchUserCoupons()
+    } catch (error) {
+      console.error('Failed to sync badge coupons:', error)
+      // Still fetch coupons even if sync fails
+      await fetchUserCoupons()
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [syncBadgeCoupons, fetchUserCoupons])
 
   useEffect(() => {
-    fetchUserCoupons()
-  }, [fetchUserCoupons])
+    syncAndFetch()
+  }, [])
 
   const getDiscountText = (discountType: string | number, discountValue: number, maxDiscountCap?: number | null) => {
     // Backend trả về: "Percentage", "Fixed", "FreeShipping" (từ .ToString())
@@ -138,10 +158,12 @@ export default function MyCouponsPage() {
           )}
 
           {/* Loading State */}
-          {isLoading && (
+          {(isLoading || isSyncing) && (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
-              <p className="mt-4 text-muted-foreground">Đang tải phiếu giảm giá của bạn...</p>
+              <p className="mt-4 text-muted-foreground">
+                {isSyncing ? 'Đang đồng bộ phiếu giảm giá từ huy hiệu...' : 'Đang tải phiếu giảm giá của bạn...'}
+              </p>
             </div>
           )}
 
