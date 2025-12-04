@@ -117,8 +117,18 @@ export default function EventDetailPage() {
               name: p.name,
               slug: p.slug || p.name.toLowerCase().replace(/\s+/g, "-"),
               description: p.description || "",
-              price: p.discountPrice || p.price,
-              discountPrice: p.discountPrice ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : undefined,
+
+              // --- CẬP NHẬT MAPPING GIÁ ---
+              // 1. Price: Phải là giá gốc
+              price: p.price,
+
+              // 2. DiscountPrice: Số tiền giảm cố định (Base discount)
+              discountPrice: p.discountPrice,
+
+              // 3. EventDiscountPercentage: % giảm giá sự kiện (Thêm field này vào object)
+              // Lưu ý: Cần ép kiểu as any hoặc mở rộng type Product nếu TypeScript báo lỗi
+              eventDiscountPercentage: p.eventDiscountPercentage,
+
               images: p.primaryImage
                 ? [{ id: `${p.id}-img`, productId: p.id, url: p.primaryImage, alt: p.name, isPrimary: true, order: 0 }]
                 : [],
@@ -130,7 +140,8 @@ export default function EventDetailPage() {
               category: p.category || undefined,
               categoryId: p.categoryId || "",
               createdAt: new Date().toISOString(),
-            }));
+            } as Product)); // Cast as Product (có thể cần mở rộng type Product ở file shared nếu cần strict type)
+
             setMappedProducts(mapped)
           }
         } else {

@@ -11,7 +11,7 @@ import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Badge } from '@/src/components/ui/badge';
-import { Star, ArrowLeft, Heart } from 'lucide-react';
+import { Star, ArrowLeft, Heart, Zap } from 'lucide-react'; // Thêm icon Zap cho sự kiện
 import { useAuth } from '@/src/core/providers/auth-provider';
 import { useProductDetail } from '@/src/features/product/hooks/use-product-detail';
 import { Product } from '@/src/shared/types';
@@ -19,7 +19,7 @@ import { productService } from '@/src/entities/product/service/product-service';
 import { productReviewService } from '@/src/entities/productReview/service/product-review-service';
 import { ProductReviewItem } from '@/src/entities/productReview/type/product-review';
 import { Pagination } from '@/src/components/ui/pagination';
-import { cn } from '@/src/lib/utils'; // Import thêm cn để xử lý class tiện hơn
+import { cn } from '@/src/lib/utils';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -106,8 +106,8 @@ export default function ProductDetailPage() {
             slug: item.name.toLowerCase().replace(/\s+/g, '-') || `product-${item.id}`,
             description: item.description || 'Không có mô tả',
             price: item.price,
-            // Cập nhật mapping cho related products để ProductCard hiển thị đúng
             discountPrice: item.discountPrice,
+            eventDiscountPercentage: item.eventDiscountPercentage, // Thêm field này
             categoryId: item.categoryId,
             category: item.category ? {
               id: item.category.id,
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
             rating: 0,
             reviewCount: 0,
             createdAt: new Date().toISOString(),
-          }));
+          } as Product)); // Cast as Product nếu cần
         setRelatedProducts(filtered);
       } catch { /* ignore */ }
     };
@@ -162,14 +162,15 @@ export default function ProductDetailPage() {
   }
 
   // === MAP PRODUCT ===
-  // 1. Giữ nguyên giá gốc từ API vào price, không tự trừ ở đây
-  const mappedProduct: Product = {
+  const mappedProduct: Product & { eventDiscountPercentage?: number | null } = {
     id: product.id,
     name: product.name,
     slug: product.name.toLowerCase().replace(/\s+/g, '-') || `product-${product.id}`,
     description: product.description || 'Không có mô tả',
     price: product.price, // GIÁ GỐC
-    discountPrice: product.discountPrice ?? undefined, // TIỀN GIẢM
+    discountPrice: product.discountPrice ?? undefined, // Base Discount
+    eventDiscountPercentage: product.eventDiscountPercentage ?? undefined, // Event Discount %
+
     categoryId: product.categoryId,
     category: product.category ? {
       id: product.category.id,
@@ -208,11 +209,24 @@ export default function ProductDetailPage() {
 
   const images = mappedProduct.images;
 
-  // === LOGIC TÍNH TOÁN GIÁ (Giống ProductCard) ===
-  const discountAmount = mappedProduct.discountPrice ?? 0;
-  const hasDiscount = discountAmount > 0;
+  // === LOGIC TÍNH TOÁN GIÁ CHI TIẾT ===
+  // 1. Giá gốc
   const originalPrice = mappedProduct.price;
-  const finalPrice = originalPrice - discountAmount;
+
+  // 2. Base Discount (Giảm giá trực tiếp)
+  const baseDiscountAmount = mappedProduct.discountPrice ?? 0;
+
+  // 3. Event Discount (Giảm giá theo % sự kiện)
+  const eventDiscountPercent = mappedProduct.eventDiscountPercentage ?? 0;
+  const eventDiscountAmount = (originalPrice * eventDiscountPercent) / 100;
+
+  // 4. Tổng giảm giá
+  const totalDiscountAmount = baseDiscountAmount + eventDiscountAmount;
+  const hasDiscount = totalDiscountAmount > 0;
+
+  // 5. Giá cuối
+  const finalPrice = originalPrice - totalDiscountAmount;
+
 
   const handleAddToCart = async () => {
     const result = await addToCart({ productId: mappedProduct.id, quantity });
@@ -301,11 +315,19 @@ export default function ProductDetailPage() {
                 className="w-full h-full object-cover"
               />
 
-              {/* Cập nhật Badge hiển thị số tiền giảm thay vì % */}
+              {/* Badge tổng tiền giảm */}
               {hasDiscount && (
-                <Badge className="absolute right-4 top-4 bg-destructive text-destructive-foreground text-lg font-bold">
-                  -{formatCurrency(discountAmount)}
-                </Badge>
+                <div className="absolute right-4 top-4 flex flex-col gap-2 items-end">
+                  <Badge className="bg-destructive text-destructive-foreground text-lg font-bold px-3 py-1">
+                    -{formatCurrency(totalDiscountAmount)}
+                  </Badge>
+                  {eventDiscountPercent > 0 && (
+                    <Badge className="bg-yellow-500 text-white font-semibold">
+                      <Zap className="w-3 h-3 mr-1 fill-current" />
+                      Sự kiện -{eventDiscountPercent}%
+                    </Badge>
+                  )}
+                </div>
               )}
             </div>
             <div className="grid grid-cols-4 gap-4">
@@ -342,19 +364,28 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* HIỂN THỊ GIÁ MỚI - Đồng bộ với ProductCard */}
-            <div className="flex items-baseline gap-3">
-              {/* Giá gốc gạch ngang (nếu có giảm) */}
-              {hasDiscount && (
-                <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
-                  {formatCurrency(originalPrice)}
-                </span>
-              )}
+            {/* HIỂN THỊ GIÁ CHI TIẾT */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-3">
+                {/* Giá gốc gạch ngang */}
+                {hasDiscount && (
+                  <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
+                    {formatCurrency(originalPrice)}
+                  </span>
+                )}
 
-              {/* Giá bán cuối cùng (Màu chủ đạo/hồng) */}
-              <span className="text-4xl font-bold text-primary">
-                {formatCurrency(finalPrice)}
-              </span>
+                {/* Giá bán cuối cùng */}
+                <span className="text-4xl font-bold text-primary">
+                  {formatCurrency(finalPrice)}
+                </span>
+              </div>
+
+              {/* Thông tin chi tiết giảm giá (nếu có cả 2 loại giảm) */}
+              {baseDiscountAmount > 0 && eventDiscountAmount > 0 && (
+                <p className="text-sm text-muted-foreground italic">
+                  (Đã giảm {formatCurrency(baseDiscountAmount)} trực tiếp và thêm {eventDiscountPercent}% từ sự kiện)
+                </p>
+              )}
             </div>
 
             {/* Quantity & Stock */}
@@ -465,7 +496,7 @@ export default function ProductDetailPage() {
               {relatedProducts.map(p => (
                 <ProductCard
                   key={p.id}
-                  product={p}
+                  product={p} // ProductCard đã được update ở bước trước để handle eventDiscountPercentage
                   onAddToCart={handleAddRelatedToCart}
                   onAddToWishlist={(prod) =>
                     toast({

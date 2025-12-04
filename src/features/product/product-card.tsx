@@ -6,14 +6,15 @@ import { ShoppingCart, Heart, Star } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import { Card, CardContent } from '@/src/components/ui/card';
 import { Badge } from '@/src/components/ui/badge';
-import type { Product } from '@/src/shared/types';
+import type { Product } from '@/src/shared/types'; // Lưu ý: Đảm bảo type Product ở shared cũng có field eventDiscountPercentage, hoặc cast kiểu
 import { formatCurrency } from '@/src/shared/utils/format';
 import { useWishlistStore } from '@/src/entities/wishlist/service';
 import { cn } from '@/src/lib/utils';
 import { useToast } from '@/src/hooks/use-toast';
 
 interface ProductCardProps {
-  product: Product;
+  // Chúng ta mở rộng type Product để chấp nhận eventDiscountPercentage nếu type gốc chưa có
+  product: Product & { eventDiscountPercentage?: number | null };
   onAddToCart?: (product: Product) => void;
   onAddToWishlist?: (product: Product) => void;
 }
@@ -25,20 +26,28 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
   const isLiked = isInWishlist(product.id);
 
-  // --- LOGIC TÍNH TOÁN GIÁ ---
-  // 1. Lấy số tiền giảm (nếu null/undefined thì là 0)
-  const discountAmount = product.discountPrice ?? 0;
+  // --- LOGIC TÍNH TOÁN GIÁ MỚI ---
 
-  // 2. Kiểm tra xem có giảm giá không (phải > 0)
-  const hasDiscount = product.discountPrice !== null && product.discountPrice !== undefined && product.discountPrice > 0;
-
-  // 3. Giá gốc (dùng để gạch đi)
+  // 1. Giá gốc
   const originalPrice = product.price;
 
-  // 4. Giá bán cuối cùng (Giá gốc - Số tiền giảm)
-  const finalPrice = hasDiscount
-    ? product.price - product.discountPrice!
-    : product.price;
+  // 2. Số tiền giảm cố định (Base Discount Price)
+  const baseDiscountAmount = product.discountPrice ?? 0;
+
+  // 3. Phần trăm giảm giá sự kiện (Event Discount Percentage)
+  const eventDiscountPercent = product.eventDiscountPercentage ?? 0;
+
+  // 4. Số tiền giảm từ % sự kiện = Price * % / 100
+  const eventDiscountAmount = (originalPrice * eventDiscountPercent) / 100;
+
+  // 5. Tổng tiền được giảm = Base Discount + Event Discount Amount
+  const totalDiscountAmount = baseDiscountAmount + eventDiscountAmount;
+
+  // 6. Giá cuối cùng = Giá gốc - Tổng giảm
+  const finalPrice = originalPrice - totalDiscountAmount;
+
+  // Kiểm tra có giảm giá không để hiển thị UI
+  const hasDiscount = totalDiscountAmount > 0;
 
   const handleWishlistClick = async () => {
     try {
@@ -76,13 +85,12 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
           />
 
-          {/* BADGE GIẢM GIÁ: Chỉ hiển thị khi hasDiscount = true */}
+          {/* BADGE GIẢM GIÁ: Hiển thị tổng số tiền được giảm */}
           {hasDiscount && (
             <Badge className="absolute right-2 top-2 bg-destructive text-destructive-foreground font-bold">
-              -{formatCurrency(product.discountPrice!)}
+              -{formatCurrency(totalDiscountAmount)}
             </Badge>
           )}
-
 
           {product.isPreOrder && (
             <Badge className="absolute left-2 top-2 bg-accent text-accent-foreground z-10">Pre-Order</Badge>
@@ -112,14 +120,14 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
 
         {/* --- KHU VỰC HIỂN THỊ GIÁ --- */}
         <div className="mb-3 flex items-center flex-wrap gap-2">
-          {/* Giá gốc gạch ngang chỉ hiển thị khi có giảm giá */}
+          {/* Giá gốc gạch ngang */}
           {hasDiscount && (
             <span className="text-sm text-muted-foreground line-through decoration-destructive/60">
-              {formatCurrency(product.price)}
+              {formatCurrency(originalPrice)}
             </span>
           )}
 
-          {/* Giá sau giảm */}
+          {/* Giá sau giảm (đã trừ DiscountPrice và EventDiscount) */}
           <span
             className={cn(
               "text-lg font-bold",
@@ -129,7 +137,6 @@ export function ProductCard({ product, onAddToCart }: ProductCardProps) {
             {formatCurrency(finalPrice)}
           </span>
         </div>
-
 
         <div className="flex gap-2 mt-auto">
           <Button

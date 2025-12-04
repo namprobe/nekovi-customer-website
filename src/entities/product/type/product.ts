@@ -42,7 +42,8 @@ export interface ProductItem extends BaseEntity {
     slug?: string;
     description?: string;
     price: number;
-    discountPrice?: number | null;
+    discountPrice?: number | null; // Số tiền giảm cố định (nếu có)
+    eventDiscountPercentage?: number | null; // % giảm giá từ sự kiện (Field mới)
     stockQuantity: number;
     isPreOrder?: boolean;
     preOrderReleaseDate?: string;
