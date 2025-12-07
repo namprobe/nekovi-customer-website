@@ -89,42 +89,48 @@ export function FeaturedProductsSection({
   };
 
   // Hàm chuyển đổi ProductItem → Product (để tương thích với ProductCard hiện tại)
-  const mapToProductCard = (item: ProductItem) => ({
-    id: item.id,
-    name: item.name,
-    slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
-    description: item.description || "",
-    price: item.price,
-    originalPrice: item.discountPrice ? item.price : undefined,
-    discount: item.discountPrice
-      ? Math.round(((item.price - item.discountPrice) / item.price) * 100)
-      : undefined,
-    categoryId: item.categoryId,
-    category: item.category
-      ? {
-        id: item.category.id,
-        name: item.category.name,
-        slug: item.category.name.toLowerCase().replace(/\s+/g, "-"),
-      }
-      : undefined,
-    images:
-      item.primaryImage || item.images?.[0]?.imagePath
-        ? [
-          {
-            id: `${item.id}-primary`,
-            productId: item.id,
-            url: item.primaryImage || item.images![0].imagePath,
-            isPrimary: true,
-            order: 0,
-          },
-        ]
-        : [],
-    stock: item.stockQuantity,
-    isPreOrder: item.isPreOrder || false,
-    rating: item.averageRating,
-    reviewCount: item.reviewCount,
-    createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : "",
-  });
+  const mapToProductCard = (item: ProductItem) => {
+    const discountAmount = item.discountPrice || 0;
+    const finalPrice = item.price - discountAmount;
+
+    return {
+      id: item.id,
+      name: item.name,
+      slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
+      description: item.description || "",
+
+      // Logic giá mới:
+      price: finalPrice, // Giá bán thực tế
+      originalPrice: discountAmount > 0 ? item.price : undefined, // Giá gốc trước khi trừ
+      discount: discountAmount, // Số tiền giảm (để hiển thị badge)
+
+      categoryId: item.categoryId,
+      category: item.category
+        ? {
+          id: item.category.id,
+          name: item.category.name,
+          slug: item.category.name.toLowerCase().replace(/\s+/g, "-"),
+        }
+        : undefined,
+      images:
+        item.primaryImage || item.images?.[0]?.imagePath
+          ? [
+            {
+              id: `${item.id}-primary`,
+              productId: item.id,
+              url: item.primaryImage || item.images![0].imagePath,
+              isPrimary: true,
+              order: 0,
+            },
+          ]
+          : [],
+      stock: item.stockQuantity,
+      isPreOrder: item.isPreOrder || false,
+      rating: item.averageRating,
+      reviewCount: item.reviewCount,
+      createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : "",
+    };
+  };
 
   if (loading) {
     return (

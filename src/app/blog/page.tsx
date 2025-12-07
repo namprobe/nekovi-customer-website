@@ -142,30 +142,41 @@ export default function BlogPage() {
         </div>
 
         <div className="mb-12 space-y-6">
-          <h2 className="text-2xl font-bold text-center md:text-left">Tìm kiếm & Lọc</h2>
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1 max-w-md">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <h2 className="text-2xl font-bold text-center md:text-left">Tìm kiếm & Lọc</h2>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            {/* 1. Khu vực ô tìm kiếm (Luôn hiển thị rõ ràng) */}
+            <div className="relative w-full max-w-md">
               <Input
                 type="text"
                 placeholder="Tìm kiếm bài viết..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-4 py-2 text-base"
+                className="pl-10 pr-4 py-2 text-base w-full"
               />
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
 
-            <div className="flex flex-wrap gap-2 justify-center md:justify-end">
-              {categories.map((cat) => (
-                <Button
-                  key={cat.id}
-                  variant={selectedCategoryId === cat.id ? "default" : "outline"}
-                  onClick={() => setSelectedCategoryId(cat.id === '' ? '' : cat.id)}
-                  size="sm"
-                >
-                  {cat.name}
-                </Button>
-              ))}
+            {/* 2. Khu vực Category (Cuộn ngang - Giống Youtube/Spotify) */}
+            <div className="w-full">
+              <p className="mb-2 text-sm text-muted-foreground font-medium md:hidden">Chọn chủ đề:</p>
+              {/* Container có overflow-x-auto để cuộn ngang */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat.id}
+                    variant={selectedCategoryId === cat.id ? "default" : "outline"}
+                    onClick={() => setSelectedCategoryId(cat.id === '' ? '' : cat.id)}
+                    size="sm"
+                    // Quan trọng: whitespace-nowrap để chữ ko xuống dòng, flex-shrink-0 để nút ko bị bóp méo
+                    className="whitespace-nowrap flex-shrink-0 rounded-full"
+                  >
+                    {cat.name}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

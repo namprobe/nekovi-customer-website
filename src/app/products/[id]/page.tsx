@@ -11,7 +11,7 @@ import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Badge } from '@/src/components/ui/badge';
-import { Star, ArrowLeft, Heart } from 'lucide-react';
+import { Star, ArrowLeft, Heart, Zap } from 'lucide-react'; // Thêm icon Zap cho sự kiện
 import { useAuth } from '@/src/core/providers/auth-provider';
 import { useProductDetail } from '@/src/features/product/hooks/use-product-detail';
 import { Product } from '@/src/shared/types';
@@ -19,6 +19,7 @@ import { productService } from '@/src/entities/product/service/product-service';
 import { productReviewService } from '@/src/entities/productReview/service/product-review-service';
 import { ProductReviewItem } from '@/src/entities/productReview/type/product-review';
 import { Pagination } from '@/src/components/ui/pagination';
+import { cn } from '@/src/lib/utils';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function ProductDetailPage() {
   // === PRODUCT DETAIL ===
   const { data: product, loading, error } = useProductDetail(params.id as string);
 
-  // === REVIEW STATES – Chỉ dùng 1 currentPage như trang danh sách ===
+  // === REVIEW STATES ===
   const [currentPage, setCurrentPage] = useState(1);
   const [reviews, setReviews] = useState<ProductReviewItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,7 +44,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  // === LOAD REVIEWS – Dùng API paging riêng ===
+  // === LOAD REVIEWS ===
   const loadReviews = async (page: number = 1) => {
     if (!params.id) return;
 
@@ -75,7 +76,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Load lần đầu khi có product
   useEffect(() => {
     if (product) {
       loadReviews(1);
@@ -83,9 +83,8 @@ export default function ProductDetailPage() {
   }, [product?.id]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page); // ← Phải có dòng này trước
+    setCurrentPage(page);
     loadReviews(page);
-
   };
 
   // === RELATED PRODUCTS ===
@@ -107,8 +106,8 @@ export default function ProductDetailPage() {
             slug: item.name.toLowerCase().replace(/\s+/g, '-') || `product-${item.id}`,
             description: item.description || 'Không có mô tả',
             price: item.price,
-            originalPrice: undefined,
-            discount: undefined,
+            discountPrice: item.discountPrice,
+            eventDiscountPercentage: item.eventDiscountPercentage, // Thêm field này
             categoryId: item.categoryId,
             category: item.category ? {
               id: item.category.id,
@@ -130,7 +129,7 @@ export default function ProductDetailPage() {
             rating: 0,
             reviewCount: 0,
             createdAt: new Date().toISOString(),
-          }));
+          } as Product)); // Cast as Product nếu cần
         setRelatedProducts(filtered);
       } catch { /* ignore */ }
     };
@@ -162,17 +161,16 @@ export default function ProductDetailPage() {
     );
   }
 
-  // === MAP PRODUCT – Đã fix hết lỗi TypeScript ===
-  const mappedProduct: Product = {
+  // === MAP PRODUCT ===
+  const mappedProduct: Product & { eventDiscountPercentage?: number | null } = {
     id: product.id,
     name: product.name,
     slug: product.name.toLowerCase().replace(/\s+/g, '-') || `product-${product.id}`,
     description: product.description || 'Không có mô tả',
-    price: product.discountPrice
-      ? product.price * (1 - product.discountPrice / 100)
-      : product.price,
-    originalPrice: product.discountPrice ? product.price : undefined,
-    discount: product.discountPrice ?? undefined,
+    price: product.price, // GIÁ GỐC
+    discountPrice: product.discountPrice ?? undefined, // Base Discount
+    eventDiscountPercentage: product.eventDiscountPercentage ?? undefined, // Event Discount %
+
     categoryId: product.categoryId,
     category: product.category ? {
       id: product.category.id,
@@ -205,11 +203,30 @@ export default function ProductDetailPage() {
     isPreOrder: product.isPreOrder || false,
     tags: product.productTags?.map(pt => pt.tag.name) || [],
     rating: product.averageRating ?? 0,
-    reviewCount: totalCount, // Dùng từ API paging → chính xác nhất
+    reviewCount: totalCount,
     createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
   };
 
   const images = mappedProduct.images;
+
+  // === LOGIC TÍNH TOÁN GIÁ CHI TIẾT ===
+  // 1. Giá gốc
+  const originalPrice = mappedProduct.price;
+
+  // 2. Base Discount (Giảm giá trực tiếp)
+  const baseDiscountAmount = mappedProduct.discountPrice ?? 0;
+
+  // 3. Event Discount (Giảm giá theo % sự kiện)
+  const eventDiscountPercent = mappedProduct.eventDiscountPercentage ?? 0;
+  const eventDiscountAmount = (originalPrice * eventDiscountPercent) / 100;
+
+  // 4. Tổng giảm giá
+  const totalDiscountAmount = baseDiscountAmount + eventDiscountAmount;
+  const hasDiscount = totalDiscountAmount > 0;
+
+  // 5. Giá cuối
+  const finalPrice = originalPrice - totalDiscountAmount;
+
 
   const handleAddToCart = async () => {
     const result = await addToCart({ productId: mappedProduct.id, quantity });
@@ -232,7 +249,7 @@ export default function ProductDetailPage() {
     }
 
     const isInList = isInWishlist(mappedProduct.id);
-    
+
     if (isInList) {
       const result = await removeFromWishlist(mappedProduct.id);
       if (result.success) {
@@ -264,7 +281,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Add to cart for related products (always quantity = 1, không ảnh hưởng quantity đang chọn của sản phẩm chính)
   const handleAddRelatedToCart = async (product: Product) => {
     const result = await addToCart({ productId: product.id, quantity: 1 });
     if (result.success) {
@@ -298,11 +314,21 @@ export default function ProductDetailPage() {
                 alt={images[selectedImage]?.alt || mappedProduct.name}
                 className="w-full h-full object-cover"
               />
-              {mappedProduct.discount ? (
-                <Badge className="absolute right-4 top-4 bg-red-500 text-lg">
-                  -{mappedProduct.discount}%
-                </Badge>
-              ) : null}
+
+              {/* Badge tổng tiền giảm */}
+              {hasDiscount && (
+                <div className="absolute right-4 top-4 flex flex-col gap-2 items-end">
+                  <Badge className="bg-destructive text-destructive-foreground text-lg font-bold px-3 py-1">
+                    -{formatCurrency(totalDiscountAmount)}
+                  </Badge>
+                  {eventDiscountPercent > 0 && (
+                    <Badge className="bg-yellow-500 text-white font-semibold">
+                      <Zap className="w-3 h-3 mr-1 fill-current" />
+                      Sự kiện -{eventDiscountPercent}%
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-4 gap-4">
               {images.map((img, idx) => (
@@ -338,12 +364,27 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-primary">{formatCurrency(mappedProduct.price)}</span>
-              {mappedProduct.originalPrice && (
-                <span className="text-xl text-muted-foreground line-through">
-                  {formatCurrency(mappedProduct.originalPrice)}
+            {/* HIỂN THỊ GIÁ CHI TIẾT */}
+            <div className="flex flex-col gap-1">
+              <div className="flex items-baseline gap-3">
+                {/* Giá gốc gạch ngang */}
+                {hasDiscount && (
+                  <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
+                    {formatCurrency(originalPrice)}
+                  </span>
+                )}
+
+                {/* Giá bán cuối cùng */}
+                <span className="text-4xl font-bold text-primary">
+                  {formatCurrency(finalPrice)}
                 </span>
+              </div>
+
+              {/* Thông tin chi tiết giảm giá (nếu có cả 2 loại giảm) */}
+              {baseDiscountAmount > 0 && eventDiscountAmount > 0 && (
+                <p className="text-sm text-muted-foreground italic">
+                  (Đã giảm {formatCurrency(baseDiscountAmount)} trực tiếp và thêm {eventDiscountPercent}% từ sự kiện)
+                </p>
               )}
             </div>
 
@@ -381,13 +422,12 @@ export default function ProductDetailPage() {
                 className="px-4"
                 aria-label={isInWishlist(mappedProduct.id) ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
               >
-                <Heart 
+                <Heart
                   className={`h-5 w-5 ${isInWishlist(mappedProduct.id) ? 'fill-red-500 text-red-500' : ''}`}
                 />
               </Button>
               <Button
                 onClick={() => {
-                  // Mua ngay: không ảnh hưởng đến cart, chuyển sang checkout với productId & quantity
                   router.push(`/checkout?productId=${mappedProduct.id}&quantity=${quantity}`);
                 }}
                 disabled={mappedProduct.stock === 0}
@@ -401,7 +441,7 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Reviews Section – Phân trang chuẩn như trang danh sách */}
+        {/* Reviews Section */}
         <section id="reviews-section" className="mt-16 space-y-8">
           <h2 className="text-2xl font-bold">Đánh giá sản phẩm ({totalCount})</h2>
 
@@ -442,7 +482,7 @@ export default function ProductDetailPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={handlePageChange} // ← vẫn dùng handlePageChange
+                onPageChange={handlePageChange}
               />
             </div>
           )}
@@ -456,7 +496,7 @@ export default function ProductDetailPage() {
               {relatedProducts.map(p => (
                 <ProductCard
                   key={p.id}
-                  product={p}
+                  product={p} // ProductCard đã được update ở bước trước để handle eventDiscountPercentage
                   onAddToCart={handleAddRelatedToCart}
                   onAddToWishlist={(prod) =>
                     toast({

@@ -35,9 +35,8 @@ export interface Product {
   name: string
   slug: string
   description: string
-  price: number
-  originalPrice?: number
-  discount?: number
+  price: number;
+  discountPrice?: number | null;
   categoryId: string
   category?: Category
   images: ProductImage[]

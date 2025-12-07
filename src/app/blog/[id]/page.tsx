@@ -73,8 +73,7 @@ export default function BlogDetailPage() {
       slug: p.slug || p.name.toLowerCase().replace(/\s+/g, "-"),
       description: p.description || "",
       price: p.discountPrice || p.price, // ưu tiên giá giảm
-      originalPrice: p.discountPrice ? p.price : undefined, // nếu có giảm thì price cũ là originalPrice
-      discount: p.discountPrice ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : undefined,
+      discountPrice: p.discountPrice ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : undefined,
       images: p.primaryImage
         ? [{ id: `${p.id}-1`, productId: p.id, url: p.primaryImage, alt: p.name, isPrimary: true, order: 0 }]
         : [],
@@ -108,8 +107,7 @@ export default function BlogDetailPage() {
           slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
           description: item.description || "",
           price: item.discountPrice || item.price,
-          originalPrice: item.discountPrice ? item.price : undefined,
-          discount: item.discountPrice ? Math.round(((item.price - item.discountPrice) / item.price) * 100) : undefined,
+          discountPrice: item.discountPrice ? Math.round(((item.price - item.discountPrice) / item.price) * 100) : undefined,
           images: item.primaryImage
             ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }]
             : [],

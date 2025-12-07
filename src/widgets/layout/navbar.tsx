@@ -42,6 +42,7 @@ export function Navbar() {
     { href: "/products", label: "Sản Phẩm" },
     { href: "/coupons", label: "Khuyến mãi" },
     { href: "/blog", label: "Bảng tin" },
+    { href: "/event", label: "Sự kiện" },
     { href: "/badges", label: "Danh hiệu" },
     { href: "/about", label: "Câu chuyện" },
   ]
@@ -175,7 +176,7 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                
+
                 {/* Mobile Auth Section */}
                 <div className="mt-4 pt-4 border-t">
                   {isAuthenticated ? (
@@ -200,8 +201,8 @@ export function Navbar() {
                         <Link href="/my-coupons" className="block text-sm hover:text-primary">
                           Phiếu Của Tôi
                         </Link>
-                        <button 
-                          onClick={handleLogout} 
+                        <button
+                          onClick={handleLogout}
                           className="block text-sm text-destructive hover:text-destructive/80"
                         >
                           Đăng Xuất
