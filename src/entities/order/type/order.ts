@@ -143,6 +143,16 @@ export interface CustomerOrderDetailDto extends CustomerOrderListItem {
 export interface CustomerOrderShipping {
   shippingMethodName?: string | null
   trackingNumber?: string | null
+  
+  // Shipping Address
+  recipientName?: string | null
+  recipientPhone?: string | null
+  address?: string | null
+  wardName?: string | null
+  districtName?: string | null
+  provinceName?: string | null
+  
+  // Dates & Status
   shippedDate?: string | null
   estimatedDeliveryDate?: string | null
   deliveredDate?: string | null
