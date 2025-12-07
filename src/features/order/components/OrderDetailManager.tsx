@@ -213,7 +213,7 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
       </div>
 
       {/* Order Information Grid */}
-      <div className="mb-8 grid gap-6 md:grid-cols-3">
+      <div className="mb-8 grid gap-6 md:grid-cols-4">
         {/* Shipping Summary */}
         <Card className="bg-muted/30 p-6">
           <div className="space-y-4">
@@ -233,6 +233,32 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
               <p className="text-sm text-muted-foreground">Mã vận đơn</p>
               <p className="font-semibold">
                 {shippingInfo?.trackingNumber || "Đang cập nhật"}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Shipping Address */}
+        <Card className="bg-muted/30 p-6">
+          <div className="space-y-4">
+            <div>
+              <p className="text-sm text-muted-foreground">Người nhận</p>
+              <p className="font-semibold">
+                {shippingInfo?.recipientName || "Chưa cập nhật"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Số điện thoại</p>
+              <p className="font-semibold">
+                {shippingInfo?.recipientPhone || "Chưa cập nhật"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Địa chỉ</p>
+              <p className="font-semibold">
+                {shippingInfo?.address
+                  ? `${shippingInfo.address}${shippingInfo.wardName ? `, ${shippingInfo.wardName}` : ""}${shippingInfo.districtName ? `, ${shippingInfo.districtName}` : ""}${shippingInfo.provinceName ? `, ${shippingInfo.provinceName}` : ""}`
+                  : "Chưa cập nhật"}
               </p>
             </div>
           </div>
