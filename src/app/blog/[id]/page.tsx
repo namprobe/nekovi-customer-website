@@ -13,10 +13,15 @@ import { notFound } from "next/navigation";
 import { ProductCard } from "@/src/features/product/product-card";
 import type { Product } from "@/src/shared/types";
 import { productService } from "@/src/entities/product/service/product-service";
+import { useCartStore } from "@/src/entities/cart/service";
+import { useToast } from "@/src/hooks/use-toast";
 
 export default function BlogDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { addToCart } = useCartStore();
+  const { toast } = useToast();
+
   const [post, setPost] = useState<BlogPostDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +40,15 @@ export default function BlogDetailPage() {
     ref.current?.scrollBy({ left: 400, behavior: "smooth" });
   };
 
+  const handleAddToCart = async (product: Product) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({ title: "Thành công", description: `Đã thêm ${product.name} vào giỏ hàng` });
+    } else {
+      toast({ title: "Lỗi", description: result.error || "Không thể thêm vào giỏ", variant: "destructive" });
+    }
+  };
+
   // Load bài viết
   useEffect(() => {
     if (!id) return;
@@ -44,20 +58,7 @@ export default function BlogDetailPage() {
       .then((data) => {
         if (!data) notFound();
         setPost(data);
-
         document.title = `${data?.title || "Bài viết"} - NekoVi Blog`;
-        const desc = data?.content.replace(/<[^>]*>/g, "").slice(0, 160) || "";
-        const metaDesc = document.querySelector('meta[name="description"]') || document.createElement("meta");
-        metaDesc.setAttribute("name", "description");
-        metaDesc.setAttribute("content", desc);
-        if (!metaDesc.parentElement) document.head.appendChild(metaDesc);
-
-        if (data?.featuredImage) {
-          const ogImage = document.querySelector('meta[property="og:image"]') || document.createElement("meta");
-          ogImage.setAttribute("property", "og:image");
-          ogImage.setAttribute("content", data.featuredImage);
-          if (!ogImage.parentElement) document.head.appendChild(ogImage);
-        }
       })
       .catch(() => notFound())
       .finally(() => setLoading(false));
@@ -67,13 +68,18 @@ export default function BlogDetailPage() {
   useEffect(() => {
     if (!post?.products || post.products.length === 0) return;
 
+    // === SỬA LOGIC MAP TẠI ĐÂY ===
     const mapped: Product[] = post.products.map((p: any): Product => ({
       id: p.id,
       name: p.name,
       slug: p.slug || p.name.toLowerCase().replace(/\s+/g, "-"),
       description: p.description || "",
-      price: p.discountPrice || p.price, // ưu tiên giá giảm
-      discountPrice: p.discountPrice ? Math.round(((p.price - p.discountPrice) / p.price) * 100) : undefined,
+
+      // Truyền dữ liệu thô để ProductCard tự tính toán
+      price: p.price, // Giá gốc
+      discountPrice: p.discountPrice, // Giá giảm cố định (nếu có)
+      eventDiscountPercentage: p.eventDiscountPercentage, // % giảm sự kiện (nếu có)
+
       images: p.primaryImage
         ? [{ id: `${p.id}-1`, productId: p.id, url: p.primaryImage, alt: p.name, isPrimary: true, order: 0 }]
         : [],
@@ -101,13 +107,18 @@ export default function BlogDetailPage() {
           sortType: "newest",
         });
 
+        // === SỬA LOGIC MAP TẠI ĐÂY ===
         const mapped: Product[] = (result.items || []).slice(0, 5).map((item): Product => ({
           id: item.id,
           name: item.name,
           slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
           description: item.description || "",
-          price: item.discountPrice || item.price,
-          discountPrice: item.discountPrice ? Math.round(((item.price - item.discountPrice) / item.price) * 100) : undefined,
+
+          // Truyền dữ liệu thô
+          price: item.price,
+          discountPrice: item.discountPrice,
+          eventDiscountPercentage: item.eventDiscountPercentage,
+
           images: item.primaryImage
             ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }]
             : [],
@@ -222,10 +233,10 @@ export default function BlogDetailPage() {
                   <ChevronRight className="h-8 w-8 text-gray-800" />
                 </button>
 
-                <div ref={relatedScrollRef} className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pl-16 pr-16">
+                <div ref={relatedScrollRef} className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pl-16 pr-16 py-4">
                   {relatedProducts.map((product) => (
                     <div key={product.id} className="flex-none w-80 snap-start">
-                      <ProductCard product={product} />
+                      <ProductCard product={product} onAddToCart={handleAddToCart} />
                     </div>
                   ))}
                 </div>
@@ -235,7 +246,7 @@ export default function BlogDetailPage() {
 
           <section className="mt-20">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-3xl font-bold">Các sản phẩm mới nhất</h2>
+              <h2 className="text-3xl font-bold">Các sản phẩm mới nhất</h2>
               <Link href="/products" className="inline-flex items-center gap-2 text-primary font-medium hover:text-pink-600 transition-colors">
                 Xem tất cả sản phẩm
                 <ArrowRight className="w-5 h-5" />
@@ -259,10 +270,10 @@ export default function BlogDetailPage() {
                   <ChevronRight className="h-8 w-8 text-gray-800" />
                 </button>
 
-                <div ref={latestScrollRef} className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pl-16 pr-16">
+                <div ref={latestScrollRef} className="flex gap-6 overflow-x-auto scrollbar-hide scroll-smooth snap-x snap-mandatory pl-16 pr-16 py-4">
                   {latestProducts.map((product) => (
                     <div key={product.id} className="flex-none w-80 snap-start">
-                      <ProductCard product={product} />
+                      <ProductCard product={product} onAddToCart={handleAddToCart} />
                     </div>
                   ))}
                 </div>

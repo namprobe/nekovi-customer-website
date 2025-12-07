@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import Link from "next/link"
 import { format } from "date-fns"
 import { vi } from "date-fns/locale"
 import {
@@ -12,8 +11,7 @@ import {
   Clock,
   ChevronLeft,
   Loader2,
-  Share2,
-  Timer
+  Share2
 } from "lucide-react"
 
 import { MainLayout } from "@/src/widgets/layout/main-layout"
@@ -25,10 +23,14 @@ import { EventService } from "@/src/entities/event/services/event.service"
 import { EventResponse } from "@/src/entities/event/types/event"
 import { ProductCard } from "@/src/features/product/product-card"
 import type { Product } from "@/src/shared/types"
+import { useCartStore } from "@/src/entities/cart/service"
+import { useToast } from "@/src/hooks/use-toast"
 
 export default function EventDetailPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { addToCart } = useCartStore();
+  const { toast } = useToast();
 
   const [event, setEvent] = useState<EventResponse | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,22 +39,29 @@ export default function EventDetailPage() {
   const [countdown, setCountdown] = useState<string>("");
   const [status, setStatus] = useState<{ label: string, color: "default" | "secondary" | "destructive" | "outline" } | null>(null);
 
-  // Helper tính trạng thái
+  const handleAddToCart = async (product: Product) => {
+    const result = await addToCart({ productId: product.id, quantity: 1 });
+    if (result.success) {
+      toast({ title: "Thành công", description: `Đã thêm ${product.name} vào giỏ hàng` });
+    } else {
+      toast({ title: "Lỗi", description: result.error || "Không thể thêm vào giỏ", variant: "destructive" });
+    }
+  };
+
   const getEventStatus = (start: string, end: string) => {
     const now = new Date().getTime();
     const startTime = new Date(start).getTime();
     const endTime = new Date(end).getTime();
 
     if (now < startTime) {
-      return { label: "Sắp diễn ra", color: "secondary" as const }; // Màu phụ (thường là xám hoặc xanh nhạt)
+      return { label: "Sắp diễn ra", color: "secondary" as const };
     } else if (now >= startTime && now <= endTime) {
-      return { label: "Đang diễn ra", color: "default" as const }; // Màu chính (Primary)
+      return { label: "Đang diễn ra", color: "default" as const };
     } else {
-      return { label: "Đã kết thúc", color: "destructive" as const }; // Màu đỏ hoặc xám đậm
+      return { label: "Đã kết thúc", color: "destructive" as const };
     }
   };
 
-  // Logic Countdown & Status Update
   useEffect(() => {
     if (!event?.endDate || !event?.startDate) return;
 
@@ -61,16 +70,14 @@ export default function EventDetailPage() {
       const start = new Date(event.startDate).getTime();
       const end = new Date(event.endDate).getTime();
 
-      // Cập nhật trạng thái liên tục
       const currentStatus = getEventStatus(event.startDate, event.endDate);
       setStatus(currentStatus);
 
-      // Logic đếm ngược
       let targetDate = end;
       let labelPrefix = "Kết thúc sau: ";
 
       if (now < start) {
-        targetDate = start; // Nếu chưa bắt đầu, đếm ngược đến lúc bắt đầu
+        targetDate = start;
         labelPrefix = "Bắt đầu sau: ";
       }
 
@@ -80,7 +87,6 @@ export default function EventDetailPage() {
         if (now > end) {
           setCountdown("Sự kiện đã kết thúc");
         } else {
-          // Trường hợp vừa chuyển từ sắp diễn ra -> đang diễn ra
           setCountdown("Đang diễn ra");
         }
       } else {
@@ -92,14 +98,12 @@ export default function EventDetailPage() {
       }
     }, 1000);
 
-    // Set initial status ngay lập tức để không bị flick
     setStatus(getEventStatus(event.startDate, event.endDate));
 
     return () => clearInterval(interval);
   }, [event?.endDate, event?.startDate]);
 
 
-  // 1. Load Data
   useEffect(() => {
     if (!id) return
 
@@ -110,24 +114,17 @@ export default function EventDetailPage() {
         if (result.isSuccess && result.data) {
           setEvent(result.data)
 
-          // Map products nếu có
           if (result.data.products && result.data.products.length > 0) {
+            // === LOGIC MAP GIỮ NGUYÊN NHƯNG ĐẢM BẢO CHÍNH XÁC ===
             const mapped: Product[] = result.data.products.map((p: any): Product => ({
               id: p.id,
               name: p.name,
               slug: p.slug || p.name.toLowerCase().replace(/\s+/g, "-"),
               description: p.description || "",
 
-              // --- CẬP NHẬT MAPPING GIÁ ---
-              // 1. Price: Phải là giá gốc
-              price: p.price,
-
-              // 2. DiscountPrice: Số tiền giảm cố định (Base discount)
-              discountPrice: p.discountPrice,
-
-              // 3. EventDiscountPercentage: % giảm giá sự kiện (Thêm field này vào object)
-              // Lưu ý: Cần ép kiểu as any hoặc mở rộng type Product nếu TypeScript báo lỗi
-              eventDiscountPercentage: p.eventDiscountPercentage,
+              price: p.price, // Giá gốc
+              discountPrice: p.discountPrice, // Giá giảm cố định
+              eventDiscountPercentage: p.eventDiscountPercentage, // % Sự kiện
 
               images: p.primaryImage
                 ? [{ id: `${p.id}-img`, productId: p.id, url: p.primaryImage, alt: p.name, isPrimary: true, order: 0 }]
@@ -140,7 +137,7 @@ export default function EventDetailPage() {
               category: p.category || undefined,
               categoryId: p.categoryId || "",
               createdAt: new Date().toISOString(),
-            } as Product)); // Cast as Product (có thể cần mở rộng type Product ở file shared nếu cần strict type)
+            } as Product));
 
             setMappedProducts(mapped)
           }
@@ -158,7 +155,6 @@ export default function EventDetailPage() {
   }, [id])
 
 
-  // 2. Loading UI
   if (loading) {
     return (
       <MainLayout>
@@ -170,7 +166,6 @@ export default function EventDetailPage() {
     )
   }
 
-  // 3. Not Found UI
   if (!event) {
     return (
       <MainLayout>
@@ -182,16 +177,11 @@ export default function EventDetailPage() {
     )
   }
 
-  // Format Helpers
   const startDateStr = event.startDate ? format(new Date(event.startDate), "EEEE, dd 'tháng' MM, yyyy", { locale: vi }) : '';
-  const startTime = event.startDate ? format(new Date(event.startDate), "HH:mm") : '';
-  const endTime = event.endDate ? format(new Date(event.endDate), "HH:mm") : '';
 
   return (
     <MainLayout>
       <div className="min-h-screen pb-10">
-
-        {/* --- HERO BANNER --- */}
         <div className="relative w-full h-[400px] md:h-[500px] bg-muted">
           {event.imagePath ? (
             <img
@@ -209,7 +199,6 @@ export default function EventDetailPage() {
 
           <div className="absolute bottom-0 left-0 w-full p-4 md:p-10 container mx-auto">
             <div className="max-w-4xl">
-              {/* STATUS BADGE CẬP NHẬT */}
               <Badge
                 className="mb-4 text-base px-4 py-1 shadow-sm uppercase tracking-wide"
                 variant={status?.color || "default"}
@@ -245,8 +234,6 @@ export default function EventDetailPage() {
           </button>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-
-            {/* --- MAIN CONTENT --- */}
             <div className="lg:col-span-2 space-y-8">
               <section className="bg-card rounded-xl p-6 border shadow-sm">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
@@ -259,23 +246,18 @@ export default function EventDetailPage() {
               </section>
             </div>
 
-            {/* --- SIDEBAR --- */}
             <div className="space-y-6">
               <div className="bg-muted/30 rounded-xl p-6 border shadow-sm sticky top-24">
                 <h3 className="font-semibold text-xl mb-6">Thời gian & Địa điểm</h3>
-
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
                     <div className="bg-primary/10 p-2.5 rounded-full">
                       <Clock className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      {/* Countdown */}
                       <p className="font-bold text-lg mt-1 text-foreground">
                         {countdown || "Đang tải..."}
                       </p>
-
-                      {/* Thời gian kết thúc */}
                       <p className="text-sm font-medium text-muted-foreground mt-1">
                         {status?.label === "Sắp diễn ra" ? "Bắt đầu: " : "Kết thúc: "}
                         {status?.label === "Sắp diễn ra"
@@ -283,7 +265,6 @@ export default function EventDetailPage() {
                           : format(new Date(event.endDate), "HH:mm dd/MM/yyyy", { locale: vi })
                         }
                       </p>
-
                     </div>
                   </div>
 
@@ -309,8 +290,6 @@ export default function EventDetailPage() {
             </div>
           </div>
 
-          {/* --- RELATED PRODUCTS SECTION --- */}
-          {/* LOGIC THAY ĐỔI: Chỉ hiện khi có sản phẩm VÀ trạng thái là "Đang diễn ra" */}
           {mappedProducts.length > 0 && status?.label === "Đang diễn ra" && (
             <div className="mt-20 mb-10">
               <div className="flex items-center justify-between mb-8">
@@ -328,13 +307,13 @@ export default function EventDetailPage() {
                   <ProductCard
                     key={product.id}
                     product={product}
+                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Có thể thêm thông báo nếu cần (Optional) */}
           {mappedProducts.length > 0 && status?.label === "Sắp diễn ra" && (
             <div className="mt-20 mb-10 text-center p-8 bg-muted/30 rounded-lg border border-dashed">
               <p className="text-muted-foreground">Danh sách sản phẩm sẽ được hiển thị khi sự kiện bắt đầu.</p>

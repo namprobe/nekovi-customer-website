@@ -11,7 +11,7 @@ import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Badge } from '@/src/components/ui/badge';
-import { Star, ArrowLeft, Heart, Zap } from 'lucide-react'; // Thêm icon Zap cho sự kiện
+import { Star, ArrowLeft, Heart, Zap, Tag } from 'lucide-react';
 import { useAuth } from '@/src/core/providers/auth-provider';
 import { useProductDetail } from '@/src/features/product/hooks/use-product-detail';
 import { Product } from '@/src/shared/types';
@@ -107,7 +107,7 @@ export default function ProductDetailPage() {
             description: item.description || 'Không có mô tả',
             price: item.price,
             discountPrice: item.discountPrice,
-            eventDiscountPercentage: item.eventDiscountPercentage, // Thêm field này
+            eventDiscountPercentage: item.eventDiscountPercentage,
             categoryId: item.categoryId,
             category: item.category ? {
               id: item.category.id,
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
             rating: 0,
             reviewCount: 0,
             createdAt: new Date().toISOString(),
-          } as Product)); // Cast as Product nếu cần
+          } as Product));
         setRelatedProducts(filtered);
       } catch { /* ignore */ }
     };
@@ -167,9 +167,9 @@ export default function ProductDetailPage() {
     name: product.name,
     slug: product.name.toLowerCase().replace(/\s+/g, '-') || `product-${product.id}`,
     description: product.description || 'Không có mô tả',
-    price: product.price, // GIÁ GỐC
-    discountPrice: product.discountPrice ?? undefined, // Base Discount
-    eventDiscountPercentage: product.eventDiscountPercentage ?? undefined, // Event Discount %
+    price: product.price,
+    discountPrice: product.discountPrice ?? undefined,
+    eventDiscountPercentage: product.eventDiscountPercentage ?? undefined,
 
     categoryId: product.categoryId,
     category: product.category ? {
@@ -209,24 +209,35 @@ export default function ProductDetailPage() {
 
   const images = mappedProduct.images;
 
-  // === LOGIC TÍNH TOÁN GIÁ CHI TIẾT ===
+  // =========================================================
+  // === LOGIC TÍNH TOÁN GIÁ MỚI (FIXED) ===
+  // =========================================================
+
   // 1. Giá gốc
   const originalPrice = mappedProduct.price;
 
-  // 2. Base Discount (Giảm giá trực tiếp)
-  const baseDiscountAmount = mappedProduct.discountPrice ?? 0;
+  // 2. Xác định giá "nền" để tính toán (Base Price)
+  // Nếu discountPrice tồn tại (>0), dùng nó. Nếu không, dùng giá gốc.
+  const hasFixedDiscount = typeof mappedProduct.discountPrice === 'number' && mappedProduct.discountPrice > 0;
+  const basePrice = hasFixedDiscount ? mappedProduct.discountPrice! : originalPrice;
 
-  // 3. Event Discount (Giảm giá theo % sự kiện)
-  const eventDiscountPercent = mappedProduct.eventDiscountPercentage ?? 0;
-  const eventDiscountAmount = (originalPrice * eventDiscountPercent) / 100;
+  // 3. Tính toán giảm giá sự kiện
+  // Công thức: Giảm thêm X% tính theo giá gốc (Price)
+  const eventPercent = mappedProduct.eventDiscountPercentage ?? 0;
+  const eventDiscountAmount = eventPercent > 0 ? (originalPrice * eventPercent) / 100 : 0;
 
-  // 4. Tổng giảm giá
-  const totalDiscountAmount = baseDiscountAmount + eventDiscountAmount;
-  const hasDiscount = totalDiscountAmount > 0;
+  // 4. Giá hiển thị cuối cùng
+  // Final = (discountPrice OR Price) - (Price * event%)
+  const finalPrice = Math.max(0, basePrice - eventDiscountAmount);
 
-  // 5. Giá cuối
-  const finalPrice = originalPrice - totalDiscountAmount;
+  // 5. Cờ kiểm tra hiển thị
+  const isDiscounted = finalPrice < originalPrice; // Có giảm giá so với gốc không
+  const isEventActive = eventPercent > 0; // Có sự kiện không
 
+  // Tính tổng số tiền tiết kiệm được
+  const totalSavings = originalPrice - finalPrice;
+
+  // =========================================================
 
   const handleAddToCart = async () => {
     const result = await addToCart({ productId: mappedProduct.id, quantity });
@@ -315,21 +326,33 @@ export default function ProductDetailPage() {
                 className="w-full h-full object-cover"
               />
 
-              {/* Badge tổng tiền giảm */}
-              {hasDiscount && (
-                <div className="absolute right-4 top-4 flex flex-col gap-2 items-end">
-                  <Badge className="bg-destructive text-destructive-foreground text-lg font-bold px-3 py-1">
-                    -{formatCurrency(totalDiscountAmount)}
+              {/* Badges hiển thị trên ảnh */}
+              <div className="absolute right-4 top-4 flex flex-col gap-2 items-end">
+                {/* 1. Badge giảm giá cố định (nếu có) */}
+                {hasFixedDiscount && !isEventActive && (
+                  <Badge className="bg-destructive text-destructive-foreground font-bold text-md px-3 py-1 shadow-md">
+                    Sale
                   </Badge>
-                  {eventDiscountPercent > 0 && (
-                    <Badge className="bg-yellow-500 text-white font-semibold">
-                      <Zap className="w-3 h-3 mr-1 fill-current" />
-                      Sự kiện -{eventDiscountPercent}%
-                    </Badge>
-                  )}
-                </div>
-              )}
+                )}
+
+                {/* 2. Badge sự kiện (nếu có) */}
+                {isEventActive && (
+                  <Badge className="bg-yellow-500 text-white font-bold text-md px-3 py-1 shadow-md animate-pulse">
+                    <Zap className="w-4 h-4 mr-1 fill-current" />
+                    -{eventPercent}% Event
+                  </Badge>
+                )}
+
+                {/* 3. Tổng kết giảm bao nhiêu tiền (nếu có giảm) */}
+                {isDiscounted && (
+                  <Badge variant="secondary" className="font-semibold text-sm shadow-sm backdrop-blur-md bg-white/80">
+                    Tiết kiệm {formatCurrency(totalSavings)}
+                  </Badge>
+                )}
+              </div>
             </div>
+
+            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-4">
               {images.map((img, idx) => (
                 <button
@@ -364,29 +387,47 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            {/* HIỂN THỊ GIÁ CHI TIẾT */}
-            <div className="flex flex-col gap-1">
-              <div className="flex items-baseline gap-3">
-                {/* Giá gốc gạch ngang */}
-                {hasDiscount && (
-                  <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
-                    {formatCurrency(originalPrice)}
-                  </span>
-                )}
-
+            {/* === PHẦN HIỂN THỊ GIÁ === */}
+            <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-baseline gap-3 flex-wrap">
                 {/* Giá bán cuối cùng */}
                 <span className="text-4xl font-bold text-primary">
                   {formatCurrency(finalPrice)}
                 </span>
+
+                {/* Giá gốc gạch ngang (nếu có giảm) */}
+                {isDiscounted && (
+                  <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
+                    {formatCurrency(originalPrice)}
+                  </span>
+                )}
               </div>
 
-              {/* Thông tin chi tiết giảm giá (nếu có cả 2 loại giảm) */}
-              {baseDiscountAmount > 0 && eventDiscountAmount > 0 && (
-                <p className="text-sm text-muted-foreground italic">
-                  (Đã giảm {formatCurrency(baseDiscountAmount)} trực tiếp và thêm {eventDiscountPercent}% từ sự kiện)
-                </p>
+              {/* Giải thích chi tiết giảm giá */}
+              {(hasFixedDiscount || isEventActive) && (
+                <div className="flex flex-col gap-1 text-sm">
+                  {/* Dòng 1: Nếu có giá DiscountPrice (giá đã giảm cố định) */}
+                  {hasFixedDiscount && (
+                    <div className="flex items-center text-orange-600 font-medium">
+                      <Tag className="w-4 h-4 mr-2" />
+                      Giá khuyến mãi: {formatCurrency(mappedProduct.discountPrice!)}
+                    </div>
+                  )}
+
+                  {/* Dòng 2: Nếu có Event Discount */}
+                  {isEventActive && (
+                    <div className="flex items-center text-yellow-600 font-medium">
+                      <Zap className="w-4 h-4 mr-2 fill-current" />
+                      Giảm thêm sự kiện: -{eventPercent}% (trên giá gốc)
+                      <span className="ml-1 text-muted-foreground font-normal">
+                        (-{formatCurrency(eventDiscountAmount)})
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
+            {/* === KẾT THÚC PHẦN GIÁ === */}
 
             {/* Quantity & Stock */}
             <div className="space-y-4 rounded-lg border bg-card p-6">
@@ -496,7 +537,7 @@ export default function ProductDetailPage() {
               {relatedProducts.map(p => (
                 <ProductCard
                   key={p.id}
-                  product={p} // ProductCard đã được update ở bước trước để handle eventDiscountPercentage
+                  product={p}
                   onAddToCart={handleAddRelatedToCart}
                   onAddToWishlist={(prod) =>
                     toast({
