@@ -484,7 +484,7 @@ export default function ProductDetailPage() {
 
         {/* Reviews Section */}
         <section id="reviews-section" className="mt-16 space-y-8">
-          <h2 className="text-2xl font-bold">Đánh giá sản phẩm ({totalCount})</h2>
+          <h2 className="text-2xl font-bold">Đánh giá sản phẩm</h2>
 
           {isLoadingReviews ? (
             <p className="text-center py-8 text-muted-foreground">Đang tải đánh giá...</p>
