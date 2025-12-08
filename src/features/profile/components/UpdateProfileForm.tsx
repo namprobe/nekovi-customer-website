@@ -29,8 +29,6 @@ export function UpdateProfileForm() {
     lastName: user?.lastName || "",
     phoneNumber: user?.phoneNumber || "",
     gender: user?.gender?.toString() || Gender.Male.toString(),
-    dateOfBirth: user?.dateOfBirth?.split('T')[0] || "",
-    bio: user?.bio || "",
   })
   
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -44,8 +42,6 @@ export function UpdateProfileForm() {
         lastName: user.lastName || "",
         phoneNumber: user.phoneNumber || "",
         gender: user.gender?.toString() || Gender.Male.toString(),
-        dateOfBirth: user.dateOfBirth?.split('T')[0] || "",
-        bio: user.bio || "",
       })
     }
   }, [user])
@@ -106,22 +102,11 @@ export function UpdateProfileForm() {
       return
     }
 
-    if (!formData.dateOfBirth) {
-      toast({
-        title: "Lỗi",
-        description: "Vui lòng chọn ngày sinh",
-        variant: "destructive",
-      })
-      return
-    }
-
     const result = await updateProfile({
       firstName: formData.firstName,
       lastName: formData.lastName,
       phoneNumber: formData.phoneNumber,
       gender: parseInt(formData.gender),
-      dateOfBirth: formData.dateOfBirth,
-      bio: formData.bio,
       avatar: avatarFile || undefined,
     })
 
@@ -136,9 +121,46 @@ export function UpdateProfileForm() {
       setAvatarPreview(null)
       setAvatarFile(null)
     } else {
-      const errorMessage = result.errors && result.errors.length > 0
-        ? result.errors.join(", ")
-        : result.error || "Cập nhật thông tin thất bại"
+      // Format error messages properly - handle both string arrays and error objects
+      let errorMessage = "Cập nhật thông tin thất bại"
+      
+      if (result.errors && result.errors.length > 0) {
+        // Backend may return errors as object { "field": ["message"] } or array of strings
+        const errorArray = result.errors as any
+        const messages: string[] = []
+        
+        // If it's an object with field errors
+        if (typeof errorArray === 'object' && !Array.isArray(errorArray)) {
+          Object.values(errorArray).forEach((value: any) => {
+            if (Array.isArray(value)) {
+              messages.push(...value)
+            } else if (typeof value === 'string') {
+              messages.push(value)
+            }
+          })
+        } 
+        // If it's already an array
+        else if (Array.isArray(errorArray)) {
+          errorArray.forEach((err: any) => {
+            if (typeof err === 'string') {
+              messages.push(err)
+            } else if (err && typeof err === 'object') {
+              // Handle nested error objects
+              Object.values(err).forEach((val: any) => {
+                if (Array.isArray(val)) {
+                  messages.push(...val)
+                } else if (typeof val === 'string') {
+                  messages.push(val)
+                }
+              })
+            }
+          })
+        }
+        
+        errorMessage = messages.length > 0 ? messages.join(". ") : errorMessage
+      } else if (result.error) {
+        errorMessage = result.error
+      }
       
       toast({
         title: "Lỗi",
@@ -266,33 +288,6 @@ export function UpdateProfileForm() {
               <SelectItem value={Gender.Other.toString()}>Khác</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="dateOfBirth">Ngày sinh *</Label>
-          <Input
-            id="dateOfBirth"
-            type="date"
-            value={formData.dateOfBirth}
-            onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-            className="h-12"
-            required
-          />
-        </div>
-
-        <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="bio">Tiểu sử</Label>
-          <Textarea
-            id="bio"
-            value={formData.bio}
-            onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-            className="min-h-[100px]"
-            placeholder="Giới thiệu về bạn..."
-            maxLength={500}
-          />
-          <p className="text-xs text-muted-foreground text-right">
-            {formData.bio.length}/500 ký tự
-          </p>
         </div>
       </div>
 
