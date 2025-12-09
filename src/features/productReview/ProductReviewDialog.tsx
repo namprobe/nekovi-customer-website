@@ -70,21 +70,15 @@ export function ProductReviewDialog({
     const checkExistingReview = async () => {
         setIsLoading(true)
         try {
-            console.log("Checking review for:", { productId, orderId });
-
             const response = await productReviewService.getMyReview({ productId, orderId })
-
-            console.log("Check Result:", response);
 
             // Logic hiển thị: Chỉ hiện review cũ nếu isSuccess = true VÀ có value
             if (response.isSuccess && response.value) {
-                console.log("Existing review found, switching to View Mode");
                 setExistingReview(response.value)
                 setRating(response.value.rating)
                 setValue("title", response.value.title || "")
                 setValue("comment", response.value.comment || "")
             } else {
-                console.log("No existing review found, switching to Create Mode");
                 setExistingReview(null)
                 setRating(0)
                 reset()
