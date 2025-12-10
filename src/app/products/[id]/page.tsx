@@ -11,7 +11,7 @@ import { useToast } from '@/src/hooks/use-toast';
 import { formatCurrency } from '@/src/shared/utils/format';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Badge } from '@/src/components/ui/badge';
-import { Star, ArrowLeft, Heart } from 'lucide-react';
+import { Star, ArrowLeft, Heart, Zap, Tag } from 'lucide-react';
 import { useAuth } from '@/src/core/providers/auth-provider';
 import { useProductDetail } from '@/src/features/product/hooks/use-product-detail';
 import { Product } from '@/src/shared/types';
@@ -19,6 +19,7 @@ import { productService } from '@/src/entities/product/service/product-service';
 import { productReviewService } from '@/src/entities/productReview/service/product-review-service';
 import { ProductReviewItem } from '@/src/entities/productReview/type/product-review';
 import { Pagination } from '@/src/components/ui/pagination';
+import { cn } from '@/src/lib/utils';
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -31,7 +32,7 @@ export default function ProductDetailPage() {
   // === PRODUCT DETAIL ===
   const { data: product, loading, error } = useProductDetail(params.id as string);
 
-  // === REVIEW STATES – Chỉ dùng 1 currentPage như trang danh sách ===
+  // === REVIEW STATES ===
   const [currentPage, setCurrentPage] = useState(1);
   const [reviews, setReviews] = useState<ProductReviewItem[]>([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -43,7 +44,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
 
-  // === LOAD REVIEWS – Dùng API paging riêng ===
+  // === LOAD REVIEWS ===
   const loadReviews = async (page: number = 1) => {
     if (!params.id) return;
 
@@ -75,7 +76,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Load lần đầu khi có product
   useEffect(() => {
     if (product) {
       loadReviews(1);
@@ -83,9 +83,8 @@ export default function ProductDetailPage() {
   }, [product?.id]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page); // ← Phải có dòng này trước
+    setCurrentPage(page);
     loadReviews(page);
-
   };
 
   // === RELATED PRODUCTS ===
@@ -107,8 +106,8 @@ export default function ProductDetailPage() {
             slug: item.name.toLowerCase().replace(/\s+/g, '-') || `product-${item.id}`,
             description: item.description || 'Không có mô tả',
             price: item.price,
-            originalPrice: undefined,
-            discount: undefined,
+            discountPrice: item.discountPrice,
+            eventDiscountPercentage: item.eventDiscountPercentage,
             categoryId: item.categoryId,
             category: item.category ? {
               id: item.category.id,
@@ -130,7 +129,7 @@ export default function ProductDetailPage() {
             rating: 0,
             reviewCount: 0,
             createdAt: new Date().toISOString(),
-          }));
+          } as Product));
         setRelatedProducts(filtered);
       } catch { /* ignore */ }
     };
@@ -162,17 +161,16 @@ export default function ProductDetailPage() {
     );
   }
 
-  // === MAP PRODUCT – Đã fix hết lỗi TypeScript ===
-  const mappedProduct: Product = {
+  // === MAP PRODUCT ===
+  const mappedProduct: Product & { eventDiscountPercentage?: number | null } = {
     id: product.id,
     name: product.name,
     slug: product.name.toLowerCase().replace(/\s+/g, '-') || `product-${product.id}`,
     description: product.description || 'Không có mô tả',
-    price: product.discountPrice
-      ? product.price * (1 - product.discountPrice / 100)
-      : product.price,
-    originalPrice: product.discountPrice ? product.price : undefined,
-    discount: product.discountPrice ?? undefined,
+    price: product.price,
+    discountPrice: product.discountPrice ?? undefined,
+    eventDiscountPercentage: product.eventDiscountPercentage ?? undefined,
+
     categoryId: product.categoryId,
     category: product.category ? {
       id: product.category.id,
@@ -205,11 +203,41 @@ export default function ProductDetailPage() {
     isPreOrder: product.isPreOrder || false,
     tags: product.productTags?.map(pt => pt.tag.name) || [],
     rating: product.averageRating ?? 0,
-    reviewCount: totalCount, // Dùng từ API paging → chính xác nhất
+    reviewCount: totalCount,
     createdAt: product.createdAt ? new Date(product.createdAt).toISOString() : new Date().toISOString(),
   };
 
   const images = mappedProduct.images;
+
+  // =========================================================
+  // === LOGIC TÍNH TOÁN GIÁ MỚI (FIXED) ===
+  // =========================================================
+
+  // 1. Giá gốc
+  const originalPrice = mappedProduct.price;
+
+  // 2. Xác định giá "nền" để tính toán (Base Price)
+  // Nếu discountPrice tồn tại (>0), dùng nó. Nếu không, dùng giá gốc.
+  const hasFixedDiscount = typeof mappedProduct.discountPrice === 'number' && mappedProduct.discountPrice > 0;
+  const basePrice = hasFixedDiscount ? mappedProduct.discountPrice! : originalPrice;
+
+  // 3. Tính toán giảm giá sự kiện
+  // Công thức: Giảm thêm X% tính theo giá gốc (Price)
+  const eventPercent = mappedProduct.eventDiscountPercentage ?? 0;
+  const eventDiscountAmount = eventPercent > 0 ? (originalPrice * eventPercent) / 100 : 0;
+
+  // 4. Giá hiển thị cuối cùng
+  // Final = (discountPrice OR Price) - (Price * event%)
+  const finalPrice = Math.max(0, basePrice - eventDiscountAmount);
+
+  // 5. Cờ kiểm tra hiển thị
+  const isDiscounted = finalPrice < originalPrice; // Có giảm giá so với gốc không
+  const isEventActive = eventPercent > 0; // Có sự kiện không
+
+  // Tính tổng số tiền tiết kiệm được
+  const totalSavings = originalPrice - finalPrice;
+
+  // =========================================================
 
   const handleAddToCart = async () => {
     const result = await addToCart({ productId: mappedProduct.id, quantity });
@@ -232,7 +260,7 @@ export default function ProductDetailPage() {
     }
 
     const isInList = isInWishlist(mappedProduct.id);
-    
+
     if (isInList) {
       const result = await removeFromWishlist(mappedProduct.id);
       if (result.success) {
@@ -264,7 +292,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Add to cart for related products (always quantity = 1, không ảnh hưởng quantity đang chọn của sản phẩm chính)
   const handleAddRelatedToCart = async (product: Product) => {
     const result = await addToCart({ productId: product.id, quantity: 1 });
     if (result.success) {
@@ -298,12 +325,34 @@ export default function ProductDetailPage() {
                 alt={images[selectedImage]?.alt || mappedProduct.name}
                 className="w-full h-full object-cover"
               />
-              {mappedProduct.discount ? (
-                <Badge className="absolute right-4 top-4 bg-red-500 text-lg">
-                  -{mappedProduct.discount}%
-                </Badge>
-              ) : null}
+
+              {/* Badges hiển thị trên ảnh */}
+              <div className="absolute right-4 top-4 flex flex-col gap-2 items-end">
+                {/* 1. Badge giảm giá cố định (nếu có) */}
+                {hasFixedDiscount && !isEventActive && (
+                  <Badge className="bg-destructive text-destructive-foreground font-bold text-md px-3 py-1 shadow-md">
+                    Sale
+                  </Badge>
+                )}
+
+                {/* 2. Badge sự kiện (nếu có) */}
+                {isEventActive && (
+                  <Badge className="bg-yellow-500 text-white font-bold text-md px-3 py-1 shadow-md animate-pulse">
+                    <Zap className="w-4 h-4 mr-1 fill-current" />
+                    -{eventPercent}% Event
+                  </Badge>
+                )}
+
+                {/* 3. Tổng kết giảm bao nhiêu tiền (nếu có giảm) */}
+                {isDiscounted && (
+                  <Badge variant="secondary" className="font-semibold text-sm shadow-sm backdrop-blur-md bg-white/80">
+                    Tiết kiệm {formatCurrency(totalSavings)}
+                  </Badge>
+                )}
+              </div>
             </div>
+
+            {/* Thumbnails */}
             <div className="grid grid-cols-4 gap-4">
               {images.map((img, idx) => (
                 <button
@@ -338,14 +387,47 @@ export default function ProductDetailPage() {
               </span>
             </div>
 
-            <div className="flex items-baseline gap-3">
-              <span className="text-4xl font-bold text-primary">{formatCurrency(mappedProduct.price)}</span>
-              {mappedProduct.originalPrice && (
-                <span className="text-xl text-muted-foreground line-through">
-                  {formatCurrency(mappedProduct.originalPrice)}
+            {/* === PHẦN HIỂN THỊ GIÁ === */}
+            <div className="flex flex-col gap-2 p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-baseline gap-3 flex-wrap">
+                {/* Giá bán cuối cùng */}
+                <span className="text-4xl font-bold text-primary">
+                  {formatCurrency(finalPrice)}
                 </span>
+
+                {/* Giá gốc gạch ngang (nếu có giảm) */}
+                {isDiscounted && (
+                  <span className="text-xl text-muted-foreground line-through decoration-destructive/60">
+                    {formatCurrency(originalPrice)}
+                  </span>
+                )}
+              </div>
+
+              {/* Giải thích chi tiết giảm giá */}
+              {(hasFixedDiscount || isEventActive) && (
+                <div className="flex flex-col gap-1 text-sm">
+                  {/* Dòng 1: Nếu có giá DiscountPrice (giá đã giảm cố định) */}
+                  {hasFixedDiscount && (
+                    <div className="flex items-center text-orange-600 font-medium">
+                      <Tag className="w-4 h-4 mr-2" />
+                      Giá khuyến mãi: {formatCurrency(mappedProduct.discountPrice!)}
+                    </div>
+                  )}
+
+                  {/* Dòng 2: Nếu có Event Discount */}
+                  {isEventActive && (
+                    <div className="flex items-center text-yellow-600 font-medium">
+                      <Zap className="w-4 h-4 mr-2 fill-current" />
+                      Giảm thêm sự kiện: -{eventPercent}% (trên giá gốc)
+                      <span className="ml-1 text-muted-foreground font-normal">
+                        (-{formatCurrency(eventDiscountAmount)})
+                      </span>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
+            {/* === KẾT THÚC PHẦN GIÁ === */}
 
             {/* Quantity & Stock */}
             <div className="space-y-4 rounded-lg border bg-card p-6">
@@ -381,13 +463,12 @@ export default function ProductDetailPage() {
                 className="px-4"
                 aria-label={isInWishlist(mappedProduct.id) ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
               >
-                <Heart 
+                <Heart
                   className={`h-5 w-5 ${isInWishlist(mappedProduct.id) ? 'fill-red-500 text-red-500' : ''}`}
                 />
               </Button>
               <Button
                 onClick={() => {
-                  // Mua ngay: không ảnh hưởng đến cart, chuyển sang checkout với productId & quantity
                   router.push(`/checkout?productId=${mappedProduct.id}&quantity=${quantity}`);
                 }}
                 disabled={mappedProduct.stock === 0}
@@ -401,9 +482,9 @@ export default function ProductDetailPage() {
           </div>
         </div>
 
-        {/* Reviews Section – Phân trang chuẩn như trang danh sách */}
+        {/* Reviews Section */}
         <section id="reviews-section" className="mt-16 space-y-8">
-          <h2 className="text-2xl font-bold">Đánh giá sản phẩm ({totalCount})</h2>
+          <h2 className="text-2xl font-bold">Đánh giá sản phẩm</h2>
 
           {isLoadingReviews ? (
             <p className="text-center py-8 text-muted-foreground">Đang tải đánh giá...</p>
@@ -442,7 +523,7 @@ export default function ProductDetailPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={handlePageChange} // ← vẫn dùng handlePageChange
+                onPageChange={handlePageChange}
               />
             </div>
           )}

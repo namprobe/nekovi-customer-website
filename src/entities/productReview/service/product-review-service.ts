@@ -1,7 +1,7 @@
 //src/entities/productReview/service/product-review-service.ts
 import apiClient from '@/src/core/lib/api-client';
 import { env } from '@/src/core/config/env';
-import { ProductReviewCreateRequest, ProductReviewItem } from '../type/product-review';
+import { ProductReviewCreateRequest, ProductReviewItem, ProductReviewResponse, ReviewCheckParams } from '../type/product-review';
 
 export interface GetProductReviewsParams {
     productId: string;
@@ -14,13 +14,15 @@ export interface GetProductReviewsParams {
 
 export class ProductReviewService {
     async create(review: ProductReviewCreateRequest): Promise<ProductReviewItem> {
+
         const response = await apiClient.post<ProductReviewItem>(env.ENDPOINTS.PRODUCT_REVIEW.CREATE, review);
 
-        if (!response.isSuccess || !response.data) {
+        if (!response.isSuccess) {
             throw new Error(response.message || 'Không thể tạo đánh giá');
         }
 
-        return response.data;
+        // Kiểm tra xem data có trả về đúng trong response.data hay không
+        return response.data as ProductReviewItem;
     }
 
     async update(id: string, review: Omit<ProductReviewCreateRequest, 'productId'>): Promise<ProductReviewItem> {
@@ -72,6 +74,33 @@ export class ProductReviewService {
         }
 
         return response.data;
+    }
+
+
+    async getMyReview(params: ReviewCheckParams): Promise<ProductReviewResponse> {
+        const url = env.ENDPOINTS.PRODUCT_REVIEW.GET_BY_USER_AND_ORDER(params.productId, params.orderId);
+
+        // Gọi API
+        const response = await apiClient.get<any>(url);
+
+        if (response.isSuccess) {
+            const responseData = response.data;
+            if (responseData && responseData.value) {
+                return {
+                    isSuccess: true,
+                    value: responseData.value
+                };
+            }
+            return {
+                isSuccess: true,
+                value: responseData
+            };
+        }
+        return {
+            isSuccess: false,
+            value: undefined,
+            message: response.message || "Chưa có đánh giá"
+        };
     }
 }
 

@@ -5,7 +5,6 @@ export interface AvailableCoupon {
   description?: string
   discountType: 'Percentage' | 'FixedAmount'
   discountValue: number
-  maxDiscountCap?: number | null
   minOrderAmount: number
   startDate: string
   endDate: string

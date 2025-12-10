@@ -335,8 +335,7 @@ export const useAuthStore = create<AuthState>()(
             formData.append("lastName", request.lastName)
             formData.append("phoneNumber", request.phoneNumber)
             formData.append("gender", request.gender.toString())
-            formData.append("dateOfBirth", request.dateOfBirth)
-            formData.append("bio", request.bio)
+            
             if (request.avatar) {
               formData.append("avatar", request.avatar)
             }

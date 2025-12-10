@@ -3,7 +3,6 @@
 
 import { useCustomerProducts } from '@/src/features/product/hooks/use-customer-products';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { MainLayout } from '@/src/widgets/layout/main-layout';
 import { ProductCard } from '@/src/features/product/product-card';
 import { Button } from '@/src/components/ui/button';
@@ -114,33 +113,44 @@ export default function ProductsPage() {
   });
 
   const products: Product[] =
-    data?.items.map((item) => ({
-      id: item.id,
-      name: item.name,
-      slug: item.name.toLowerCase().replace(/\s+/g, '-') || 'product-' + item.id,
-      description: item.description || 'Không có mô tả',
-      price: item.price,
-      originalPrice: undefined,
-      discount: undefined,
-      categoryId: item.categoryId,
-      category: item.category
-        ? {
-          id: item.category.id,
-          name: item.category.name,
-          slug: item.category.name.toLowerCase().replace(/\s+/g, '-'),
-          description: item.category.description,
-        }
-        : undefined,
-      images: item.primaryImage
-        ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }]
-        : [],
-      stock: item.stockQuantity,
-      isPreOrder: item.isPreOrder || false,
-      tags: [],
-      rating: item.averageRating,
-      reviewCount: item.reviewCount,
-      createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
-    })) || [];
+    data?.items.map((item) => {
+      const hasBaseDiscount = item.discountPrice != null && item.discountPrice > 0;
+      const basePrice = hasBaseDiscount ? item.discountPrice! : item.price;
+      const eventPercent = item.eventDiscountPercentage ?? 0;
+      const eventDiscountAmount = (item.price * eventPercent) / 100;
+      const finalPrice = basePrice - eventDiscountAmount;
+
+      return {
+        id: item.id,
+        name: item.name,
+        slug: item.name.toLowerCase().replace(/\s+/g, '-') || 'product-' + item.id,
+        description: item.description || 'Không có mô tả',
+        eventDiscountPercentage: item.eventDiscountPercentage ?? undefined,
+
+        // 3. Price hiển thị (giá đã trừ tiền giảm)
+        price: item.price, // Đây là Giá Gốc (100k)
+        discountPrice: item.discountPrice, // Đây là số tiền giảm (40k)
+
+        categoryId: item.categoryId,
+        category: item.category
+          ? {
+            id: item.category.id,
+            name: item.category.name,
+            slug: item.category.name.toLowerCase().replace(/\s+/g, '-'),
+            description: item.category.description,
+          }
+          : undefined,
+        images: item.primaryImage
+          ? [{ id: `${item.id}-primary`, productId: item.id, url: item.primaryImage, alt: item.name, isPrimary: true, order: 0 }]
+          : [],
+        stock: item.stockQuantity,
+        isPreOrder: item.isPreOrder || false,
+        tags: [],
+        rating: item.averageRating,
+        reviewCount: item.reviewCount,
+        createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+      };
+    }) || [];
 
   const totalPages = data?.totalPages ?? 1;
 
