@@ -164,9 +164,48 @@ export function OrderDetailManager({ orderId }: OrderDetailManagerProps) {
       shippingInfo?.deliveredDate && { title: "Đã giao", description: "Đơn hàng đã giao cho khách", date: formatDateTime(shippingInfo.deliveredDate), statusCode: 11 },
     ].filter(Boolean) as { title: string; description: string; date: string; statusCode: number }[]
 
-  if (isLoading) return (<div className="container mx-auto px-4 py-8"><div className="flex items-center justify-center py-12"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div></div>)
-  if (error) return (<div className="container mx-auto px-4 py-8 text-center"><p>{error}</p></div>)
-  if (!order) return (<div className="container mx-auto px-4 py-8 text-center"><p>Không tìm thấy đơn hàng</p></div>)
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-bold text-destructive mb-4">Lỗi</h1>
+        <p className="text-muted-foreground mb-6">{error}</p>
+        <Link href="/orders">
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại danh sách đơn hàng
+          </Button>
+        </Link>
+      </div>
+    )
+  }
+
+  // Not found state
+  if (!order) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-bold text-destructive mb-4">Không tìm thấy đơn hàng</h1>
+        <p className="text-muted-foreground mb-6">Đơn hàng với ID #{formatOrderId(orderId)} không tồn tại</p>
+        <Link href="/orders">
+          <Button>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Quay lại danh sách đơn hàng
+          </Button>
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
