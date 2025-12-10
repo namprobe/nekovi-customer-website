@@ -37,6 +37,7 @@ export interface Product {
   description: string
   price: number;
   discountPrice?: number | null;
+  eventDiscountPercentage?: number | null;
   categoryId: string
   category?: Category
   images: ProductImage[]

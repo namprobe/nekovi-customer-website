@@ -114,17 +114,18 @@ export default function ProductsPage() {
 
   const products: Product[] =
     data?.items.map((item) => {
-      // 1. Lấy giá trị giảm giá (nếu null/undefined thì là 0)
-      const discountAmount = item.discountPrice || 0;
-
-      // 2. Tính giá bán cuối cùng (Price - DiscountAmount)
-      const finalPrice = item.price - discountAmount;
+      const hasBaseDiscount = item.discountPrice != null && item.discountPrice > 0;
+      const basePrice = hasBaseDiscount ? item.discountPrice! : item.price;
+      const eventPercent = item.eventDiscountPercentage ?? 0;
+      const eventDiscountAmount = (item.price * eventPercent) / 100;
+      const finalPrice = basePrice - eventDiscountAmount;
 
       return {
         id: item.id,
         name: item.name,
         slug: item.name.toLowerCase().replace(/\s+/g, '-') || 'product-' + item.id,
         description: item.description || 'Không có mô tả',
+        eventDiscountPercentage: item.eventDiscountPercentage ?? undefined,
 
         // 3. Price hiển thị (giá đã trừ tiền giảm)
         price: item.price, // Đây là Giá Gốc (100k)

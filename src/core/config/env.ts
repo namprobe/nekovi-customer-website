@@ -57,6 +57,13 @@ export const env = {
             GET_BY_PRODUCT: (productId: string) => `/product-reviews/product/${productId}`,
             UPDATE: (id: string) => `/product-reviews/${id}`,
             DELETE: (id: string) => `/product-reviews/${id}`,
+            GET_BY_USER_AND_ORDER: (productId: string, orderId?: string) => {
+                const base = `/product-reviews/my-review`;
+                if (orderId) {
+                    return `${base}?productId=${productId}&orderId=${orderId}`;
+                }
+                return `${base}?productId=${productId}`;
+            },
         },
         USER_ADDRESS: {
             BASE: `/user-addresses`,
