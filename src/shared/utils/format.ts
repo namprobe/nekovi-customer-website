@@ -4,32 +4,35 @@
  */
 
 /**
- * Normalize UTC date string from backend
- * Backend sends: "2025-11-19T03:45:40.0793879" (UTC but no Z suffix)
- * This ensures it's parsed as UTC, not local time
+ * Normalize date string from backend with heuristics:
+ * - If has timezone (Z or +07:00) => respect it.
+ * - If no timezone:
+ *    * If fractional milliseconds length > 3 (e.g. SQL/.NET style) => likely UTC -> append Z.
+ *    * Else treat as local time (no shift).
  */
 const normalizeUTCDate = (date: string | Date): Date => {
   if (date instanceof Date) return date
   
-  // If string doesn't have timezone indicator, assume it's UTC from backend
   let dateString = String(date).trim()
   
-  // If already has Z or timezone offset, use as is
+  // If already has Z or timezone offset, parse directly
   if (dateString.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateString)) {
     return new Date(dateString)
   }
   
-  // Backend sends UTC time without Z suffix, add Z to force UTC parsing
-  // Remove any trailing milliseconds beyond 3 digits if present
+  // Capture fractional part length before trimming
+  let fractionalLength = 0
   dateString = dateString.replace(/\.(\d+)$/, (_match, digits) => {
-    // Keep only first 3 digits of milliseconds for ISO format
+    fractionalLength = digits.length
     const ms = digits.substring(0, 3).padEnd(3, '0')
     return `.${ms}`
   })
   
-  // Add Z suffix to indicate UTC
-  if (!dateString.endsWith('Z')) {
-    dateString += 'Z'
+  // Heuristic: long fractional (>3) → treat as UTC (backend ticks), else local
+  if (fractionalLength > 3) {
+    if (!dateString.endsWith('Z')) {
+      dateString += 'Z'
+    }
   }
   
   return new Date(dateString)
