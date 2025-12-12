@@ -49,8 +49,6 @@ export interface UpdateProfileRequest {
   lastName: string
   phoneNumber: string
   gender: number
-  dateOfBirth: string
-  bio: string
   avatar?: File
 }
 

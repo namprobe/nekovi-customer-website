@@ -27,6 +27,7 @@ export interface UserCoupon {
   discountType: 'Percentage' | 'FixedAmount'
   discountTypeName: string
   discountValue: number
+  maxDiscountCap?: number | null
   minOrderAmount: number
   startDate: string
   endDate: string
