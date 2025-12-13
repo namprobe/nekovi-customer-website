@@ -1,4 +1,4 @@
-//src/widgets/home/featured-products.tsx
+// src/widgets/home/featured-products.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ interface FeaturedProductsSectionProps {
   /** true = lấy mới nhất, false = lấy ngẫu nhiên */
   isNewest?: boolean;
   limit?: number;
-  showViewAll?: boolean; // chỉ phần "mới nhất" mới có nút xem tất cả
+  showViewAll?: boolean;
 }
 
 export function FeaturedProductsSection({
@@ -36,15 +36,13 @@ export function FeaturedProductsSection({
         setLoading(true);
         const query = {
           page: 1,
-          pageSize: limit * 5, // lấy dư để random nếu cần
+          pageSize: limit * 5,
           sortType: isNewest ? "newest" : undefined,
         };
 
         const res = await productService.getProductList(query);
-
         let list = res.items;
 
-        // Nếu không phải newest → random
         if (!isNewest) {
           list = [...list].sort(() => Math.random() - 0.5);
         }
@@ -81,17 +79,9 @@ export function FeaturedProductsSection({
     }
   };
 
-  const handleAddToWishlist = (product: ProductItem) => {
-    toast({
-      title: "Đã thêm vào yêu thích",
-      description: `${product.name} đã được thêm vào danh sách yêu thích`,
-    });
-  };
-
-  // Hàm chuyển đổi ProductItem → Product (để tương thích với ProductCard hiện tại)
+  // CHỈ MAP NHỮNG TRƯỜNG CẦN THIẾT → ĐỂ PRODUCTCARD TỰ TÍNH GIÁ
   const mapToProductCard = (item: ProductItem) => {
-    const discountAmount = item.discountPrice || 0;
-    const finalPrice = item.price - discountAmount;
+    const primaryImageUrl = item.primaryImage || item.images?.[0]?.imagePath;
 
     return {
       id: item.id,
@@ -99,10 +89,10 @@ export function FeaturedProductsSection({
       slug: item.slug || item.name.toLowerCase().replace(/\s+/g, "-"),
       description: item.description || "",
 
-      // Logic giá mới:
-      price: finalPrice, // Giá bán thực tế
-      originalPrice: discountAmount > 0 ? item.price : undefined, // Giá gốc trước khi trừ
-      discount: discountAmount, // Số tiền giảm (để hiển thị badge)
+      // TRUYỀN ĐÚNG THEO LOGIC MỚI CỦA PRODUCTCARD
+      price: item.price, // giá gốc
+      discountPrice: item.discountPrice ?? null, // giá đã giảm cố định (nếu có)
+      eventDiscountPercentage: item.eventDiscountPercentage ?? 0, // % giảm thêm từ event
 
       categoryId: item.categoryId,
       category: item.category
@@ -112,22 +102,23 @@ export function FeaturedProductsSection({
           slug: item.category.name.toLowerCase().replace(/\s+/g, "-"),
         }
         : undefined,
-      images:
-        item.primaryImage || item.images?.[0]?.imagePath
-          ? [
-            {
-              id: `${item.id}-primary`,
-              productId: item.id,
-              url: item.primaryImage || item.images![0].imagePath,
-              isPrimary: true,
-              order: 0,
-            },
-          ]
-          : [],
+
+      images: primaryImageUrl
+        ? [
+          {
+            id: `${item.id}-primary`,
+            productId: item.id,
+            url: primaryImageUrl,
+            isPrimary: true,
+            order: 0,
+          },
+        ]
+        : [],
+
       stock: item.stockQuantity,
       isPreOrder: item.isPreOrder || false,
-      rating: item.averageRating,
-      reviewCount: item.reviewCount,
+      rating: item.averageRating || 0,
+      reviewCount: item.reviewCount || 0,
       createdAt: item.createdAt ? new Date(item.createdAt).toISOString() : "",
     };
   };
@@ -138,7 +129,7 @@ export function FeaturedProductsSection({
         <div className="container mx-auto px-4">
           <h2 className="mb-8 text-3xl font-bold">{title}</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-            {Array.from({ length: limit }).map((_, i) => (
+            {Array.from({ length: Math.min(limit, 10) }).map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="aspect-square bg-muted rounded-lg mb-4" />
                 <div className="h-4 bg-muted rounded mb-2" />
@@ -157,9 +148,9 @@ export function FeaturedProductsSection({
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-bold text-balance">{title}</h2>
           {showViewAll && (
-            <Link href="/products">
+            <Link href="/products?sort=newest">
               <Button variant="ghost" className="group">
-                Xem các sản phẩm khác
+                Xem tất cả
                 <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
@@ -167,14 +158,18 @@ export function FeaturedProductsSection({
         </div>
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {products.map((item) => (
-            <ProductCard
-              key={item.id}
-              product={mapToProductCard(item)}
-              onAddToCart={() => handleAddToCart(item)}
-              onAddToWishlist={() => handleAddToWishlist(item)}
-            />
-          ))}
+          {products.map((item) => {
+            const productForCard = mapToProductCard(item);
+
+            return (
+              <ProductCard
+                key={item.id}
+                product={productForCard}
+                onAddToCart={() => handleAddToCart(item)}
+              // onAddToWishlist vẫn để tạm, hoặc bạn có thể dùng store trực tiếp trong ProductCard
+              />
+            );
+          })}
         </div>
       </div>
     </section>

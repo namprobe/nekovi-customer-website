@@ -126,6 +126,9 @@ export function Navbar() {
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
+                  <Link href="/my-home-images">Đổi ảnh trang chủ</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
