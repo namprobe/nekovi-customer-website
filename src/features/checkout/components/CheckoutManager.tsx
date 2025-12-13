@@ -363,14 +363,19 @@ export function CheckoutManager() {
     let productDiscountAmount = 0
 
     displayedItems.forEach((item) => {
-      // Calculate UnitPriceOriginal from price and discountPrice
-      // If discountPrice exists, price is already after discount
-      // UnitPriceOriginal = price / (1 - discountPrice/100)
-      const unitPriceOriginal = item.discountPrice && item.discountPrice > 0
-        ? item.price / (1 - item.discountPrice / 100)
+      // Backend logic: 
+      // - item.price = Product.Price (giá gốc)
+      // - item.discountPrice = Product.DiscountPrice (giá sau giảm, nếu có)
+      // Matching backend CalculateProductPricing method
+      const unitPriceOriginal = item.price // Price is the original price from backend
+      
+      // If discountPrice exists and is valid, use it as the discounted price
+      // Otherwise, use original price (no discount)
+      const unitPriceAfterDiscount = item.discountPrice && item.discountPrice > 0
+        && item.discountPrice <= item.price
+        ? item.discountPrice
         : item.price
       
-      const unitPriceAfterDiscount = item.price
       const unitDiscountAmount = unitPriceOriginal - unitPriceAfterDiscount
 
       subtotalOriginal += unitPriceOriginal * item.quantity
@@ -613,8 +618,14 @@ export function CheckoutManager() {
   useEffect(() => {
     if (!isBuyNow || !buyNowProduct) return
 
-    const unitPrice = buyNowProduct.discountPrice
-      ? buyNowProduct.price * (1 - buyNowProduct.discountPrice / 100)
+    // Backend logic: 
+    // - buyNowProduct.price = Product.Price (giá gốc)
+    // - buyNowProduct.discountPrice = Product.DiscountPrice (giá sau giảm, nếu có)
+    // Price calculation will be handled in orderBreakdown useMemo
+    const unitPriceOriginal = buyNowProduct.price
+    const unitPriceAfterDiscount = buyNowProduct.discountPrice && buyNowProduct.discountPrice > 0
+      && buyNowProduct.discountPrice <= buyNowProduct.price
+      ? buyNowProduct.discountPrice
       : buyNowProduct.price
 
     const imagePath =
@@ -629,8 +640,8 @@ export function CheckoutManager() {
       id: buyNowProduct.id,
       productId: buyNowProduct.id,
       name: buyNowProduct.name,
-      price: unitPrice,
-      discountPrice: buyNowProduct.discountPrice ?? null,
+      price: unitPriceOriginal, // Store original price (matching backend mapping)
+      discountPrice: buyNowProduct.discountPrice ?? null, // Store discount price if exists
       quantity: buyNowQuantity,
       imagePath,
       createdAt:
@@ -647,7 +658,8 @@ export function CheckoutManager() {
 
     setDisplayedItems([syntheticItem])
     setTotalItems(buyNowQuantity)
-    setTotalPrice(unitPrice * buyNowQuantity)
+    // Use original price for totalPrice calculation (will be adjusted in orderBreakdown)
+    setTotalPrice(unitPriceOriginal * buyNowQuantity)
   }, [isBuyNow, buyNowProduct, buyNowQuantity])
 
   useEffect(() => {
