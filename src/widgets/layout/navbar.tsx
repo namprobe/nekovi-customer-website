@@ -80,7 +80,7 @@ export function Navbar() {
         {/* Search Bar */}
         <div className="hidden flex-1 max-w-md lg:flex">
           <div className="relative w-full">
-            <Input
+            {/* <Input
               type="search"
               placeholder="Tìm kiếm sản phẩm"
               value={searchQuery}
@@ -94,7 +94,7 @@ export function Navbar() {
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
-            </Button>
+            </Button> */}
           </div>
         </div>
 
@@ -124,6 +124,9 @@ export function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Hồ Sơ Của Tôi</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/my-home-images">Đổi ảnh trang chủ</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/orders">Đơn Hàng</Link>
@@ -222,13 +225,13 @@ export function Navbar() {
                 </div>
 
                 <div className="mt-4 pt-4 border-t">
-                  <Input
+                  {/* <Input
                     type="search"
                     placeholder="Tìm kiếm sản phẩm"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full"
-                  />
+                  /> */}
                 </div>
               </nav>
             </SheetContent>
